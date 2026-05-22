@@ -47,3 +47,12 @@ Thumbs.db
 # project
 *.log
 .phantom-companion-state.json
+
+# secrets
+.env
+.env.*
+!.env.example
+agents.toml
+*.pem
+id_rsa
+credentials.json
