@@ -10,6 +10,20 @@
 ![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 [![phantom-mesh ecosystem](https://img.shields.io/badge/ecosystem-phantom--mesh-purple)](https://github.com/markl-a/phantom-mesh)
 
+## 30-second demo
+
+[`docs/demo.cast`](docs/demo.cast) — asciinema recording of `phantom_companion.cli daily-report` running all 5 insight modules (mostly baseline today; signal accrues with daily use).
+
+```sh
+# play in a terminal (requires asciinema)
+asciinema play docs/demo.cast
+
+# or view the captured text without any tooling:
+cat docs/demo.cast | jq -r '.[] | select(.[1]=="o") | .[2]'
+```
+
+Self-hosted on purpose — no upload to asciinema.org, no third-party tracking.
+
 ## 一句話 niche
 
 RescueTime 只看 app 使用、Rize 只看 focus、Apple Screen Time 是 Apple-only、

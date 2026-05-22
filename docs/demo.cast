@@ -1,0 +1,7 @@
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1779466493,"idle_time_limit":2.0,"command":"/tmp/demo-scripts/companion.sh","title":"phantom-companion Tier 1 demo (daily behavior report)","env":{"SHELL":"/bin/zsh"}}
+[0.527, "o", "$ python -m phantom_companion.cli daily-report --out ./demo-out\r\n"]
+[16.089, "o", "demo-out/2026-05-23-report.md\r\n"]
+[0.526, "o", "\r\n$ head -25 ./demo-out/*-report.md\r\n"]
+[0.516, "o", "# phantom-companion — daily report (2026-05-23)\r\n\r\n> Proactive observation pass. Tone: supportive, never blame.\r\n\r\n## Overview\r\n- Events captured today: **0**\r\n- Insight modules with usable signal: **1 / 5**\r\n- Sibling satellites: phantom-ai-feed=off, phantom-flow=off, phantom-enterprise=on, phantom-secure-connector=on, phantom-training=on\r\n\r\n## Insights\r\n### llm_usage (baseline)\r\nNo LLM call events captured yet — gathering baseline.\r\n\r\n### attention_switches (baseline)\r\nFewer than 5 timestamped events — peak-focus detection idle.\r\n\r\n### health_productivity_correlation (baseline)\r\nWaiting on: health (④ secure-connector ingest), commits (git activity feed)\r\n\r\n### learning_roi (ready)\r\n8 items in today's digest, 0 engaged (0% engagement)\r\n\r\n### jobseek_followup (baseline)\r\nNo jobseek-tagged events today — follow-up tracker idle.\r\n"]
+[1.012, "o", "\r\n# phantom-companion: 5 insight modules ran (mostly baseline; signal accrues with daily use)\r\n"]
+[2.012, "x", "0"]
