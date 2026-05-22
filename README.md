@@ -1,5 +1,7 @@
 # phantom-companion
 
+[![CI](https://github.com/markl-a/phantom-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/markl-a/phantom-companion/actions/workflows/ci.yml)
+
 > **Proactive 行為觀察 + LLM insight + 跨裝置整合** — RescueTime + Rize +
 > Bearable 的整合版,phantom-mesh 七專案的 keystone(唯一消費其他六個輸出
 > 的專案),招聘對齊 Garmin / Anthropic / Micron AIoT。
