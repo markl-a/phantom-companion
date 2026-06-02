@@ -126,8 +126,10 @@ def render_daily_report(agg: DailyAggregate) -> str:
     if not ok:
         raise RuntimeError(f"refused to emit shame-leaking report: {reason}")
     polished = _invoke_coach(text)
-    if polished:
-        ok, reason = shame_free_check(polished)
+    # Accept a coach polish only if it keeps the canonical structure (H1 +
+    # baseline framing) AND stays shame-free; else fall back to the template.
+    if polished and polished.startswith("# phantom-companion"):
+        ok, _ = shame_free_check(polished)
         if ok:
             return polished
     return text
