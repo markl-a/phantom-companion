@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import subprocess
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
 from pathlib import Path
@@ -89,6 +91,43 @@ def _events_for_day(events_root: Path, day: str) -> list[dict[str, Any]]:
     return out
 
 
+def _events_via_recall(day: str, limit: int = 1000) -> list[dict[str, Any]]:
+    """Source the day's events through ``phantom recall --json`` (the supported,
+    decrypting read path). The on-disk ``events/<id>/{meta,analysis}.json`` files
+    are age-encrypted, so reading them directly yields ciphertext — recall is the
+    only way to get decrypted ``{event_id, timestamp, kind, summary}``.
+
+    Mapped back to the aggregator's event shape so insight modules are unaffected.
+    Returns ``[]`` if phantom is unavailable (CI / no binary).
+    """
+    if not shutil.which("phantom"):
+        return []
+    try:
+        proc = subprocess.run(
+            ["phantom", "recall", "", "--json", "--since", day, "--limit", str(int(limit))],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if proc.returncode != 0:
+        return []
+    try:
+        events = json.loads(proc.stdout or "[]")
+    except json.JSONDecodeError:
+        return []
+    out: list[dict[str, Any]] = []
+    for e in events:
+        ts = e.get("timestamp", "") or ""
+        if not ts.startswith(day):  # --since is >=day; keep exactly this day
+            continue
+        out.append({
+            "id": e.get("event_id"),
+            "meta": {"timestamp": ts, "kind": e.get("kind")},
+            "analysis": {"summary": e.get("summary", "")},
+        })
+    return out
+
+
 def _read_satellite_log(logs_root: Path, satellite: str, day: str) -> str:
     sat_dir = logs_root / satellite
     if not sat_dir.is_dir():
@@ -118,7 +157,12 @@ def aggregate_day(day: str | None = None, mesh_root: Path | None = None) -> Dail
     """Return a :class:`DailyAggregate` for ``day`` (default: today)."""
     day = day or _iso_today()
     root = Path(mesh_root) if mesh_root else DEFAULT_MESH_ROOT
-    events = _events_for_day(root / "events", day)
+    # Real mesh → recall (decrypts); overridden mesh_root (tests) or no phantom →
+    # fall back to the raw events/ dir scan.
+    if root == DEFAULT_MESH_ROOT and shutil.which("phantom"):
+        events = _events_via_recall(day)
+    else:
+        events = _events_for_day(root / "events", day)
     logs_root = root / "logs"
     satellite_logs = {sat: _read_satellite_log(logs_root, sat, day) for sat in SATELLITES}
     heartbeats = {sat: _heartbeat_alive(logs_root, sat) for sat in SATELLITES}
