@@ -33,12 +33,20 @@ def test_lint_accepts_clean_text() -> None:
         assert ok is True, f"unexpected rejection ({reason}): {clean}"
 
 
-def test_daily_report_on_empty_mesh_is_shame_free(tmp_path: Path) -> None:
+def test_daily_report_on_empty_mesh_is_shame_free(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Disable the real LLM coach so this stays deterministic/offline.
+    from phantom_companion import reporter as rep
+
+    monkeypatch.setattr(rep, "_invoke_coach", lambda _day: None)
     # Use an empty fake mesh root.
     agg = aggregate_day("2026-05-22", mesh_root=tmp_path)
     text = render_daily_report(agg)
     assert text.startswith("# phantom-companion")
     assert "baseline" in text.lower()
+    # Even with no coach, a data-driven next-step must be present.
+    assert "## Next-step suggestion" in text
     ok, reason = shame_free_check(text)
     assert ok, reason
 
@@ -51,7 +59,12 @@ def test_weekly_report_on_empty_mesh_is_shame_free(tmp_path: Path) -> None:
     assert ok, reason
 
 
-def test_write_daily_report_creates_file(tmp_path: Path) -> None:
+def test_write_daily_report_creates_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from phantom_companion import reporter as rep
+
+    monkeypatch.setattr(rep, "_invoke_coach", lambda _day: None)
     out = tmp_path / "out"
     path = write_daily_report(
         day="2026-05-22",
@@ -63,11 +76,34 @@ def test_write_daily_report_creates_file(tmp_path: Path) -> None:
 
 
 def test_reporter_refuses_to_emit_shame(monkeypatch: pytest.MonkeyPatch) -> None:
-    """If the polished output is dirty, reporter must fall back, not propagate."""
+    """If the coach output is dirty, reporter must drop it, not merge it."""
     from phantom_companion import reporter as rep
 
-    monkeypatch.setattr(rep, "_invoke_coach", lambda _t: "你又遲到了!")
+    monkeypatch.setattr(rep, "_invoke_coach", lambda _day: "# Daily review —\n你又遲到了!")
     agg = DailyAggregate(day="2026-05-22")
     text = rep.render_daily_report(agg)
-    # The polished (dirty) string must NOT be the returned text.
+    # The dirty coach block must NOT be merged into the report.
     assert "你又" not in text
+
+
+def test_reporter_merges_clean_coach_block(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A clean coach review must be merged in and drive the next-step line."""
+    from phantom_companion import reporter as rep
+
+    coach = (
+        "# Daily review — 2026-05-22\n\n"
+        "You stayed focused on AI research today.\n\n"
+        "## Tomorrow's one action\n\n"
+        "Read the PEEL framework paper."
+    )
+    monkeypatch.setattr(rep, "_invoke_coach", lambda _day: coach)
+    agg = DailyAggregate(day="2026-05-22")
+    text = rep.render_daily_report(agg)
+    # The real coach narrative must appear (demoted to H2).
+    assert "## Daily review — 2026-05-22" in text
+    assert "You stayed focused on AI research today." in text
+    # Next-step must be driven by the coach's "Tomorrow's one action".
+    assert "## Next-step suggestion" in text
+    assert "Read the PEEL framework paper." in text
+    ok, reason = shame_free_check(text)
+    assert ok, reason
