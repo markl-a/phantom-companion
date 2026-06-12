@@ -83,7 +83,8 @@ def _invoke_coach(day: str) -> str | None:
         result = subprocess.run(
             ["phantom", "coach", "review", "--date", day],
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
     except (subprocess.TimeoutExpired, OSError):

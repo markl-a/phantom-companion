@@ -57,10 +57,10 @@ cd phantom-companion
 pip install -e .
 
 # 跑日報(會吃 ~/.phantom-mesh/events/ + 各 satellite log)
-python -m phantom_companion.reporter --kind daily
+python -m phantom_companion.cli daily-report
 
 # 週報
-python -m phantom_companion.reporter --kind weekly
+python -m phantom_companion.cli weekly-report
 
 pytest -v
 ```
