@@ -1,11 +1,16 @@
 # ⑦ phantom-companion
 
-> **行為觀察 + LLM insight + 主動優化建議,跑在 phantom-mesh 上**
-> Life Track wedge,跨領域優化的 keystone
+> **shame-free 日報 / 週報生成器,跑在 phantom-mesh 上**
+> Life Track wedge(Tier 1:gathering baseline;以下多為 roadmap 願景)
 
-## 一句話定位
+> **狀態說明**:本文是 phantom-companion 的願景 / roadmap spec。目前實作(Tier 1)
+> 只是一個讀取 phantom-mesh 已落地的 events + ai-feed digest 並產出 Markdown 報告的
+> stdlib-only 工具,詳見 [README](../README.md)。下方的健康相關性、跨 7 項目 keystone、
+> 主動推送等多為 **規劃中(placeholder / roadmap)**,尚未實作。
 
-「phantom-mesh 上的個人行為分析 agent — 觀察你怎麼用 phantom、Apple Watch / Garmin 給的健康資料、phantom 累積的所有事件,找出 pattern,主動建議優化。Companion 不只回應你問題,它主動看你怎麼活。」
+## 一句話定位(願景)
+
+「phantom-mesh 上的個人行為分析 agent — 觀察你怎麼用 phantom、phantom 累積的事件,找出 pattern,產出 shame-free 報告。」(健康資料 ingest 為 roadmap,見下。)
 
 ## 對齊 BIG-GOAL
 
@@ -46,7 +51,7 @@
 | LLM 使用 history | phantom FTS5(自動,phantom 內每個 prompt 都進)|
 | commit / skill 產出 | phantom Hermes Curator + git activity |
 | Tab / context switch | phantom 內 web/screenshot 工具(consent-gated)|
-| Apple HealthKit / Garmin | iOS Shortcut 每日匯出 → ④ secure-connector ingest |
+| Apple HealthKit / Garmin | **(roadmap)** iOS Shortcut → ④ secure-connector ingest;repo 內無 HealthKit,health module 目前回傳 baseline |
 | RSS 訂閱 vs 實際閱讀 | ③ phantom-ai-feed 答題紀錄 |
 | Calendar / focus session | mac focus mode + phantom event capture |
 | 接案 / 求職 lead | ⑥ phantom-flow trigger 紀錄 |
@@ -61,23 +66,25 @@
 季:長期趨勢(體重 trend、技能成長、收入軌跡)
 ```
 
-### 建議什麼(範例)
+### 建議什麼(roadmap 願景範例 — 非實際輸出)
+
+> ⚠ 以下為 **目標願景的示意**,非目前產出。實作上健康相關性 module 是 placeholder
+> (回傳 `baseline`:「Waiting on: health …」,repo 內無 HealthKit ingest),睡眠等
+> 具體數字 / 主動推送皆 **尚未實作**。實際範例見 [`docs/sample-daily-report.md`](sample-daily-report.md)。
 
 ```
-[早上 09:00 推送 ─ 主動]
-你睡眠 5.8 hr (低於 baseline 1.2 hr)
+[晨報 ─ roadmap]
 昨天最後 2 個 commit 在 23:47 + 00:32,GraphQL 那段需要再 review
 今天 14:00-17:00 commit/PR review 品質歷史最好,
 要不要把那段保留給 phantom-flow 那個 PR?
+(健康相關性,如睡眠 vs 產出,為 roadmap;需先有多週 health window)
 
-[週六晚上 22:00 ─ 主動]
+[週六複盤 ─ roadmap]
 本週 review:
 ✓ 投了 5 家(若干公司),3 家有回應,1 家 onsite
-⚠ 訂的 15 個 AI source,只讀了 3 個(LangChain blog / r/LocalLLaMA / Karpathy)
-  砍掉其他 12 個了
-⚠ LLM 成本本月已超月度預算 70%,還剩 9 天 → 推薦 Code refactor 改用 Gemini Flash(省 60%)
-✓ 睡眠平均 6.8 hr(目標 7+)
-✗ 父親本週只記到 2 次量血壓(目標 7),要不要設提醒?
+⚠ 訂的 15 個 AI source,只讀了 3 個 → 建議砍掉其他
+⚠ LLM 成本本月已超月度預算 70% → 推薦改用較便宜 model
+(睡眠平均、家人量血壓 compliance 等健康項為 roadmap,尚無 health 資料源)
 ```
 
 ## 招聘 / 副業 / 應用評分
@@ -129,8 +136,9 @@
 
 - **需要 phantom-mesh 跑 2-3 個月才有資料可分析**(M1 + M2 跑下來才有 pattern)
 - **需要 ③ ai-feed 跟 ⑥ flow 都先 ship**,因為 companion 為它們的「reader」
-- **需要 ④ secure-connector 已 ready**,因為 sensor data ingest 走 secure pipeline
-- → companion 為 7 個項目的 **keystone**,放最後才能 unlock 全部 insight
+- **需要 ④ secure-connector 已 ready**,才能接 sensor data ingest(roadmap)
+- → companion 規劃為讀取多個 phantom-mesh channel 的報告層;目前(Tier 1)只讀
+  events + ai-feed digest,「unlock 全部 insight 的 keystone」為 roadmap 願景
 
 ## 改裝來源
 
@@ -161,7 +169,7 @@
 - 自我量化(Quantified Self)社群活躍但工具碎片化
 - LLM + behavioral analytics 結合的還沒成熟(2026 才開始)
 - on-prem privacy 為強差異化(健康/財務資料不想上雲)
-- 為 phantom 生態 keystone(連結其他 6 個項目),demo 影片最有 narrative power
+- 規劃為 phantom 生態的報告層(roadmap 上連結其他項目的輸出);目前只讀 events + ai-feed digest
 
 ---
 
