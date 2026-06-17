@@ -16,6 +16,9 @@ missing ``day`` (a sample with no date cannot be placed in the window).
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
 from typing import Any
 
 from .schema import HealthSample
@@ -102,8 +105,86 @@ def parse_export_stream(rows: list[dict[str, Any]]) -> dict[str, HealthSample]:
     return out
 
 
+def read_health_window(
+    mesh_root: str | os.PathLike[str] | Path,
+    days: list[str],
+) -> dict[str, dict[str, Any]]:
+    """Read the per-day ④ secure-connector health exports for the given ISO days off disk.
+
+    Production location: <mesh_root>/logs/phantom-secure-connector/health-<day>.json
+    Each file is one day's export dict (the shape parse_secure_connector_export consumes).
+    Returns {day: {sleep_hr, hrv_ms, resting_hr, activity_min, source}} suitable for
+    aggregate_window(health_by_day=...). Days with no file (or unreadable/unparseable
+    JSON) are skipped (best-effort, never raises). mesh_root may be a str or Path.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    for day in days:
+        path = (
+            Path(mesh_root)
+            / "logs"
+            / "phantom-secure-connector"
+            / f"health-{day}.json"
+        )
+        if not path.exists():
+            continue
+        try:
+            # OSError = unreadable; ValueError covers json.JSONDecodeError AND a
+            # UnicodeDecodeError from a corrupt byte — keep this total.
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(raw, dict):
+            continue
+        raw.setdefault("day", day)
+        try:
+            sample = parse_secure_connector_export(raw)
+        except HealthExportError:
+            continue
+        sample_dict = sample.to_dict()
+        sample_dict.pop("day", None)
+        out[day] = sample_dict
+    return out
+
+
+def read_output_window(
+    mesh_root: str | os.PathLike[str] | Path,
+    days: list[str],
+) -> dict[str, dict[str, int]]:
+    """Read per-day developer-output samples (commit/line counts) off disk.
+
+    Production location: <mesh_root>/logs/phantom-companion/output-<day>.json
+    Each file is a dict like {"commits": int, "lines_changed": int}.
+    Returns {day: {commits, lines_changed}} suitable for aggregate_window(output_by_day=...).
+    Missing/unreadable/unparseable files are skipped (never raises).
+    """
+    out: dict[str, dict[str, int]] = {}
+    for day in days:
+        path = Path(mesh_root) / "logs" / "phantom-companion" / f"output-{day}.json"
+        if not path.exists():
+            continue
+        try:
+            # ValueError also catches a UnicodeDecodeError from a corrupt byte.
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(raw, dict):
+            continue
+        try:
+            commits = int(raw.get("commits", 0))
+        except (TypeError, ValueError):
+            commits = 0
+        try:
+            lines_changed = int(raw.get("lines_changed", 0))
+        except (TypeError, ValueError):
+            lines_changed = 0
+        out[day] = {"commits": commits, "lines_changed": lines_changed}
+    return out
+
+
 __all__ = [
     "HealthExportError",
     "parse_secure_connector_export",
     "parse_export_stream",
+    "read_health_window",
+    "read_output_window",
 ]

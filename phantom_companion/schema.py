@@ -307,12 +307,12 @@ def aggregate_window(
         health = (
             HealthSample.from_dict({"day": day, **health_by_day[day]})
             if day in health_by_day
-            else None
+            else raw.health
         )
         output = (
             OutputSample.from_dict({"day": day, **output_by_day[day]})
             if day in output_by_day
-            else None
+            else raw.output
         )
         day_aggs.append(
             DayAggregate(

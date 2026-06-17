@@ -88,4 +88,52 @@ def parse_checkin_line(line: str) -> SubjectiveCheckin:
     return SubjectiveCheckin(day=day, gut=gut, mood=mood, sleep_hr=sleep_hr)
 
 
-__all__ = ["SubjectiveCheckin", "CheckinParseError", "parse_checkin_line"]
+def read_checkins(path: str | Path) -> dict[str, "SubjectiveCheckin"]:
+    """Read the local-only nightly check-in store (checkins.jsonl) back into a
+    {day: SubjectiveCheckin} map. path may be the checkins.jsonl file itself
+    or the directory containing it. Last write for a given day wins (a later
+    nightly correction overrides an earlier line). Missing file -> empty map.
+    Blank lines and malformed JSON lines are skipped (best-effort, never raises).
+    """
+    import json
+    from pathlib import Path
+
+    p = Path(path)
+    if p.is_dir():
+        p = p / "checkins.jsonl"
+    if not p.exists():
+        return {}
+
+    out: dict[str, SubjectiveCheckin] = {}
+    try:
+        with p.open(encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    obj = json.loads(stripped)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(obj, dict):
+                    continue
+                try:
+                    c = SubjectiveCheckin.from_dict(obj)
+                except (TypeError, ValueError):
+                    continue
+                if not c.day:
+                    continue
+                out[c.day] = c
+    except (OSError, ValueError):
+        # OSError = unreadable file; ValueError covers a UnicodeDecodeError from a
+        # corrupt byte during line iteration — keep this best-effort/never-raises.
+        return out
+    return out
+
+
+__all__ = [
+    "SubjectiveCheckin",
+    "CheckinParseError",
+    "parse_checkin_line",
+    "read_checkins",
+]

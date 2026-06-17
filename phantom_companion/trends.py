@@ -110,7 +110,11 @@ def trend_over(series: list[tuple[Any, float]], metric: str) -> TrendResult:
     )
 
 
-def render_trend_report(trends: list[TrendResult], period: str = "monthly") -> str:
+def render_trend_report(
+    trends: list[TrendResult],
+    period: str = "monthly",
+    health_correlation: dict | None = None,
+) -> str:
     """Render a monthly / quarterly trend digest. Always shame-free."""
     from .reporter import shame_free_check  # local import avoids a cycle
 
@@ -140,6 +144,11 @@ def render_trend_report(trends: list[TrendResult], period: str = "monthly") -> s
             lines.append(f"- {t.label}: {t.n}/{MIN_SAMPLES} days.")
         lines.append("")
 
+    if health_correlation is not None:
+        lines.append("## Health × output")
+        lines.append(f"- {health_correlation['summary']}")
+        lines.append("")
+
     text = "\n".join(lines).rstrip() + "\n"
     ok, reason = shame_free_check(text)
     if not ok:
@@ -147,7 +156,9 @@ def render_trend_report(trends: list[TrendResult], period: str = "monthly") -> s
     return text
 
 
-def build_trends_from_window(window: Any) -> list["TrendResult"]:
+def build_trends_from_window(
+    window: Any, checkins_by_day: Any = None
+) -> list["TrendResult"]:
     """Derive the standard long-window trends from a typed AggregateWindow.
 
     Uses the health stream where present (sleep_hr / hrv_ms / resting_hr) plus
@@ -171,6 +182,20 @@ def build_trends_from_window(window: Any) -> list["TrendResult"]:
     att = [(d.day, float(sum(1 for ev in d.events if ev.timestamp))) for d in window.days]
     if any(v for _, v in att):
         out.append(trend_over(att, "attention"))
+    # P3-M2 — fold the nightly subjective check-ins (mood / gut / sleep) into the
+    # long-window trends so 'phantom-companion trends' reflects real check-ins,
+    # not just sensor + event data. Series are day-ordered to match the window.
+    if checkins_by_day:
+        ordered_days = [d.day for d in window.days if d.day in checkins_by_day]
+        subjective = (
+            ("mood", lambda c: float(c.mood)),
+            ("gut", lambda c: float(c.gut)),
+            ("sleep_hr", lambda c: float(c.sleep_hr)),
+        )
+        for metric, pick in subjective:
+            series = [(day, pick(checkins_by_day[day])) for day in ordered_days]
+            if series:
+                out.append(trend_over(series, metric))
     return out
 
 

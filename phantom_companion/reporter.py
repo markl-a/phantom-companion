@@ -27,6 +27,7 @@ from .insight_modules import (
     analyze_learning_roi,
     analyze_llm_usage,
 )
+from .insight_modules.health_productivity_correlation import correlate_health_output
 from .schema import AggregateWindow, aggregate_window
 
 import re as _re
@@ -332,6 +333,21 @@ def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
     busiest_hour = by_hour.most_common(1)[0][0] if by_hour else None
     pending = sorted(investigated - applied)
 
+    # P1-M3 — pair each day's ④ health sample with that day's developer output
+    # and run the multi-day statistical correlation (gated on MIN_SAMPLES inside
+    # correlate_health_output). Days missing either stream are dropped so the
+    # Pearson/Spearman fit only sees complete pairs.
+    health_output_samples = [
+        {
+            "day": d.day,
+            "sleep_hr": d.health.sleep_hr,
+            "commits": d.output.commits,
+        }
+        for d in window.days
+        if d.health is not None and d.output is not None
+    ]
+    health_correlation = correlate_health_output(health_output_samples)
+
     return {
         "days_observed": len(window.days),
         "llm_usage": {
@@ -355,6 +371,7 @@ def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
             "pending": len(pending),
             "pending_companies": pending,
         },
+        "health_output": health_correlation,
     }
 
 
@@ -422,6 +439,11 @@ def render_weekly_report_from_window(window: AggregateWindow) -> str:
         lines.append("- No jobseek-tagged activity this week — tracker idle.")
     lines.append("")
 
+    hc = roll["health_output"]
+    lines.append("## Health × output")
+    lines.append(f"- {hc['summary']}")
+    lines.append("")
+
     lines.append("## This week's note")
     if total_events == 0:
         lines.append(
@@ -472,6 +494,9 @@ def write_weekly_report(
     end = date.fromisoformat(end_day) if end_day else date.today()
     days = [(end - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
     if rollup:
+        # aggregate_window → aggregate_day loads the ④ health + developer-output
+        # exports off disk per day, so the health×output correlation runs on real
+        # data when present (and stays in honest baseline mode when absent).
         window = aggregate_window(days, mesh_root=mesh_root)
         text = render_weekly_report_from_window(window)
     else:
@@ -492,13 +517,32 @@ def write_trend_report(
 ) -> Path:
     """Write a monthly (30d) / quarterly (90d) long-window trend digest (P3-M2)."""
     from .trends import build_trends_from_window, render_trend_report
+    from .checkin import read_checkins
 
     n_days = 90 if period == "quarterly" else 30
     end = date.fromisoformat(end_day) if end_day else date.today()
     days = [(end - timedelta(days=i)).isoformat() for i in range(n_days - 1, -1, -1)]
-    window = aggregate_window(days, mesh_root=mesh_root)
-    text = render_trend_report(build_trends_from_window(window), period=period)
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
+    # aggregate_window → aggregate_day loads the ④ health + developer-output
+    # exports off disk per day; the nightly check-ins come from the report dir.
+    window = aggregate_window(days, mesh_root=mesh_root)
+    checkins_by_day = read_checkins(out_dir)
+    # The 30/90-day trend window is long enough to clear the MIN_SAMPLES gate, so
+    # this is where the REAL multi-day health×output Pearson/Spearman correlation
+    # can actually fire in production (the 7-day weekly report never can). Pair
+    # each day's ④ health sample with that day's output; days missing either are
+    # dropped so the coefficient only sees complete pairs.
+    paired = [
+        {"day": d.day, "sleep_hr": d.health.sleep_hr, "commits": d.output.commits}
+        for d in window.days
+        if d.health is not None and d.output is not None
+    ]
+    health_correlation = correlate_health_output(paired)
+    text = render_trend_report(
+        build_trends_from_window(window, checkins_by_day),
+        period=period,
+        health_correlation=health_correlation,
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end.isoformat()}-{period}-trends.md"
     path.write_text(text, encoding="utf-8")

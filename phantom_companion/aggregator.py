@@ -174,6 +174,15 @@ def aggregate_day(day: str | None = None, mesh_root: Path | None = None) -> Dail
     logs_root = root / "logs"
     satellite_logs = {sat: _read_satellite_log(logs_root, sat, day) for sat in SATELLITES}
     heartbeats = {sat: _heartbeat_alive(logs_root, sat) for sat in SATELLITES}
+    # P1-M3: attach the parallel ④ health + developer-output streams when an
+    # export exists on disk for this day, so the health×output correlation runs
+    # on real data instead of the hard-coded empty inputs.
+    from .health_ingest import read_health_window, read_output_window
+    from .schema import HealthSample, OutputSample
+    health_map = read_health_window(root, [day])
+    output_map = read_output_window(root, [day])
+    health = HealthSample.from_dict({"day": day, **health_map[day]}) if day in health_map else None
+    output = OutputSample.from_dict({"day": day, **output_map[day]}) if day in output_map else None
     return DailyAggregate(
         day=day,
         events=events,
@@ -181,6 +190,8 @@ def aggregate_day(day: str | None = None, mesh_root: Path | None = None) -> Dail
         heartbeats=heartbeats,
         ai_feed_log=satellite_logs.get("phantom-ai-feed", ""),
         flow_log=satellite_logs.get("phantom-flow", ""),
+        health=health,
+        output=output,
     )
 
 
