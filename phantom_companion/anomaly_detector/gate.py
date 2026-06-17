@@ -121,9 +121,12 @@ def gated_anomaly_alerts(
         #  - the local term lets a genuinely tight recent regime still flag a
         #    smaller-but-real deviation (codex finding #2). A real spike clears
         #    either; a trivial blip clears neither.
-        scale = max(local_scale, series_scale)
-        abs_floor = ALERT_MIN_ABS_SCALES * scale
-        if scale > 0 and abs(p.value - recent_med) < abs_floor:
+        # ``is_anomaly`` already guarantees the local window had mad>0, so
+        # ``scale`` is strictly positive here; the floor is always meaningful.
+        # ``<=`` so "exceeds the floor" is strict (a deviation equal to the
+        # floor is treated as still-within-baseline, not an alert).
+        abs_floor = ALERT_MIN_ABS_SCALES * max(local_scale, series_scale)
+        if abs(p.value - recent_med) <= abs_floor:
             continue
         mid = recent_med
         direction = "above" if p.value > mid else ("below" if p.value < mid else "unusual")
