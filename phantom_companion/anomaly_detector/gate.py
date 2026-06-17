@@ -182,22 +182,29 @@ def render_anomaly_alerts(alerts: list[AnomalyAlert]) -> str:
     plainly (the absence of an alert is itself reassuring, not a silence).
     """
     if not alerts:
-        return "No notable deviations from your recent baseline today.\n"
+        text = "No notable deviations from your recent baseline today.\n"
+    else:
+        lines = ["## Worth a glance", ""]
+        for a in alerts:
+            if a.direction == "above":
+                phrase = "ran higher than"
+            elif a.direction == "below":
+                phrase = "ran lower than"
+            else:
+                phrase = "looked different from"
+            lines.append(
+                f"- On {a.day}, {a.label} {phrase} your recent baseline "
+                f"(value {a.value:g}). Just a heads-up — nothing here is a verdict."
+            )
+        lines.append("")
+        text = "\n".join(lines).rstrip() + "\n"
 
-    lines = ["## Worth a glance", ""]
-    for a in alerts:
-        if a.direction == "above":
-            phrase = "ran higher than"
-        elif a.direction == "below":
-            phrase = "ran lower than"
-        else:
-            phrase = "looked different from"
-        lines.append(
-            f"- On {a.day}, {a.label} {phrase} your recent baseline "
-            f"(value {a.value:g}). Just a heads-up — nothing here is a verdict."
-        )
-    lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+    from ..reporter import shame_free_check
+
+    ok, reason = shame_free_check(text)
+    if not ok:
+        raise RuntimeError(f"refused to emit shame-leaking anomaly alert: {reason}")
+    return text
 
 
 __all__ = [

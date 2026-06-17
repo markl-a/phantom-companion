@@ -134,6 +134,27 @@ def test_render_no_alerts_is_shame_free() -> None:
     assert "no" in text.lower()
 
 
+def test_render_anomaly_alerts_self_guards_output() -> None:
+    bad_alert = AnomalyAlert(
+        metric="you always",
+        day="2026-06-03",
+        value=99.0,
+        score=8.0,
+        direction="above",
+    )
+    with pytest.raises(RuntimeError, match="refused to emit shame-leaking anomaly alert"):
+        render_anomaly_alerts([bad_alert])
+
+    normal_alert = AnomalyAlert(
+        metric="sleep_hr",
+        day="2026-06-03",
+        value=1.0,
+        score=8.0,
+        direction="below",
+    )
+    assert isinstance(render_anomaly_alerts([normal_alert]), str)
+
+
 # ---------------------------------------------------------------------------
 # metric extraction off an AggregateWindow
 # ---------------------------------------------------------------------------
