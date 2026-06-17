@@ -51,11 +51,38 @@ def shame_free_check(text: str) -> tuple[bool, str]:
 DEFAULT_REPORT_ROOT = Path.home() / ".phantom-mesh" / "logs" / "phantom-companion"
 
 
+def _health_inputs(agg: DailyAggregate) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Lift the ④ health sample + git output off the aggregate into the shape
+    :func:`analyze_health_vs_output` consumes.
+
+    P1-M3: this REPLACES the old ``health_data={}, commits=[]`` hard-code at the
+    callsite. When ④ ingest has attached nothing the inputs stay empty and the
+    insight reports a directional "waiting on" summary — never a fabricated
+    correlation.
+    """
+    health_data: dict[str, Any] = {}
+    if agg.health is not None:
+        health_data = {
+            "sleep_hr": agg.health.sleep_hr,
+            "hrv_ms": agg.health.hrv_ms,
+            "resting_hr": agg.health.resting_hr,
+            "activity_min": agg.health.activity_min,
+            "source": agg.health.source,
+        }
+    commits: list[dict[str, Any]] = []
+    if agg.output is not None and agg.output.commits > 0:
+        # We only need the count for the single-day directional summary; emit
+        # placeholder rows so no commit message / SHA / content leaves device.
+        commits = [{"n": i} for i in range(agg.output.commits)]
+    return health_data, commits
+
+
 def _run_insights(agg: DailyAggregate) -> list[dict[str, Any]]:
+    health_data, commits = _health_inputs(agg)
     return [
         analyze_llm_usage(agg.events),
         analyze_attention(agg.events),
-        analyze_health_vs_output(health_data={}, commits=[]),
+        analyze_health_vs_output(health_data=health_data, commits=commits),
         analyze_learning_roi(agg.ai_feed_log),
         analyze_jobseek(agg.events),
     ]

@@ -18,7 +18,10 @@ import subprocess
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:  # avoid a runtime import cycle (schema imports aggregator)
+    from .schema import HealthSample, OutputSample
 
 DEFAULT_MESH_ROOT = Path(os.environ.get("PHANTOM_MESH_HOME", Path.home() / ".phantom-mesh"))
 
@@ -42,6 +45,11 @@ class DailyAggregate:
     heartbeats: dict[str, bool] = field(default_factory=dict)
     ai_feed_log: str = ""
     flow_log: str = ""
+    # P1-M3 — parallel ④ secure-connector health + git-output streams, attached
+    # when available so the daily reporter can run the real (gated) correlation
+    # instead of the old hard-coded empty inputs. ``None`` means "not ingested".
+    health: "HealthSample | None" = None
+    output: "OutputSample | None" = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
