@@ -29,6 +29,8 @@ from .insight_modules import (
 )
 from .schema import AggregateWindow, aggregate_window
 
+import re as _re
+
 # Shame patterns — mirror of core/src/life_node/coach_prompts/lint.rs.
 # Keep in sync; integration test should verify equivalence once the
 # Python <-> Rust bridge is available.
@@ -40,6 +42,26 @@ _SHAME_PATTERNS: tuple[tuple[str, str], ...] = (
     ("還不", "imperative-shame: '還不...' (commanding tone)"),
 )
 
+# English shame/blame patterns. The companion now emits English digests (weekly
+# rollups, anomaly alerts, trends), so the lint must guard those too — judgmental
+# 2nd-person constructs ("you always...", "you failed to...") and shaming
+# imperatives. Matched case-insensitively, word-bounded so e.g. "your" never
+# trips "you ... ". These are deliberately narrow: descriptive prose ("activity
+# ran higher than baseline") must pass untouched.
+_SHAME_PATTERNS_EN: tuple[tuple[str, str], ...] = (
+    (r"\byou always\b", "blame: 'you always...' implies recurring failure"),
+    (r"\byou never\b", "blame: 'you never...' implies recurring failure"),
+    (r"\byou failed\b", "judgment: 'you failed...'"),
+    (r"\byou keep\b", "blame: 'you keep...' implies repeated failure"),
+    (r"\byou should have\b", "regret-shame: 'you should have...'"),
+    (r"\byou wasted\b", "judgment: 'you wasted...'"),
+    (r"\byou can'?t even\b", "contempt: \"you can't even...\""),
+    (r"\byet again\b", "sarcasm: 'yet again' implies repeated failure"),
+)
+_SHAME_RE_EN = tuple(
+    (_re.compile(pat, _re.IGNORECASE), why) for pat, why in _SHAME_PATTERNS_EN
+)
+
 
 def shame_free_check(text: str) -> tuple[bool, str]:
     """Return ``(ok, reason)``. ``ok=True`` means clean."""
@@ -47,6 +69,10 @@ def shame_free_check(text: str) -> tuple[bool, str]:
         idx = text.find(pat)
         if idx >= 0:
             return False, f"shame leakage at byte offset {idx}: {why}"
+    for rx, why in _SHAME_RE_EN:
+        m = rx.search(text)
+        if m is not None:
+            return False, f"shame leakage at byte offset {m.start()}: {why}"
     return True, ""
 
 
@@ -454,5 +480,26 @@ def write_weekly_report(
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end.isoformat()}-weekly-report.md"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def write_trend_report(
+    period: str = "monthly",
+    end_day: str | None = None,
+    out_root: Path | None = None,
+    mesh_root: Path | None = None,
+) -> Path:
+    """Write a monthly (30d) / quarterly (90d) long-window trend digest (P3-M2)."""
+    from .trends import build_trends_from_window, render_trend_report
+
+    n_days = 90 if period == "quarterly" else 30
+    end = date.fromisoformat(end_day) if end_day else date.today()
+    days = [(end - timedelta(days=i)).isoformat() for i in range(n_days - 1, -1, -1)]
+    window = aggregate_window(days, mesh_root=mesh_root)
+    text = render_trend_report(build_trends_from_window(window), period=period)
+    out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{end.isoformat()}-{period}-trends.md"
     path.write_text(text, encoding="utf-8")
     return path

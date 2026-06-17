@@ -147,4 +147,36 @@ def render_trend_report(trends: list[TrendResult], period: str = "monthly") -> s
     return text
 
 
-__all__ = ["TrendResult", "trend_over", "render_trend_report"]
+def build_trends_from_window(window: Any) -> list["TrendResult"]:
+    """Derive the standard long-window trends from a typed AggregateWindow.
+
+    Uses the health stream where present (sleep_hr / hrv_ms / resting_hr) plus
+    the LLM-cost and attention proxies the gate module also uses. Metrics with
+    no data across the window are skipped.
+    """
+    metrics_health = ("sleep_hr", "hrv_ms", "resting_hr")
+    out: list[TrendResult] = []
+    for metric in metrics_health:
+        series = [
+            (d.day, float(getattr(d.health, metric)))
+            for d in window.days
+            if d.health is not None
+        ]
+        if series:
+            out.append(trend_over(series, metric))
+    # LLM usage proxy (model-call count per day) + attention density.
+    llm = [(d.day, float(sum(1 for ev in d.events if ev.provider))) for d in window.days]
+    if any(v for _, v in llm):
+        out.append(trend_over(llm, "llm_cost"))
+    att = [(d.day, float(sum(1 for ev in d.events if ev.timestamp))) for d in window.days]
+    if any(v for _, v in att):
+        out.append(trend_over(att, "attention"))
+    return out
+
+
+__all__ = [
+    "TrendResult",
+    "trend_over",
+    "render_trend_report",
+    "build_trends_from_window",
+]
