@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Iterable
@@ -26,6 +27,7 @@ from .insight_modules import (
     analyze_learning_roi,
     analyze_llm_usage,
 )
+from .schema import AggregateWindow, aggregate_window
 
 # Shame patterns — mirror of core/src/life_node/coach_prompts/lint.rs.
 # Keep in sync; integration test should verify equivalence once the
@@ -248,6 +250,173 @@ def render_weekly_report(aggs: Iterable[DailyAggregate]) -> str:
     return text
 
 
+# ---------------------------------------------------------------------------
+# P2-M1 — weekly cross-satellite pattern rollups (typed AggregateWindow)
+# ---------------------------------------------------------------------------
+
+def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
+    """Lift a week of per-day signal into four behavioural-lens rollups.
+
+    Consumes a typed :class:`AggregateWindow` (so it reads straight from the
+    SQLite window cache), summing the per-day insight signal across the span:
+
+    - ``llm_usage`` — provider call totals + the week's top provider.
+    - ``attention`` — busiest hour-of-day across the week.
+    - ``learning_roi`` — items read vs engaged, summed over ai-feed digests.
+    - ``jobseek`` — companies investigated vs applied vs still-pending.
+
+    Pure data — no judgemental wording is produced here; the renderer turns this
+    into shame-free prose.
+    """
+    by_provider: Counter[str] = Counter()
+    by_task: Counter[str] = Counter()
+    by_hour: Counter[int] = Counter()
+    investigated: set[str] = set()
+    applied: set[str] = set()
+    items_read = 0
+    items_engaged = 0
+
+    for day in window.days:
+        for ev in day.events:
+            if ev.provider:
+                by_provider[ev.provider] += 1
+            if ev.kind:
+                by_task[ev.kind] += 1
+            # hour-of-day from the ISO timestamp, if present.
+            ts = ev.timestamp
+            if len(ts) >= 13 and ts[10] == "T":
+                try:
+                    by_hour[int(ts[11:13])] += 1
+                except ValueError:
+                    pass
+            if ev.company:
+                tags = set(ev.tags)
+                if "jobseek" in tags or "company_research" in tags:
+                    investigated.add(ev.company)
+                if ev.applied or "applied" in tags:
+                    applied.add(ev.company)
+        # learning ROI from the ai-feed digest log for the day.
+        feed = day.satellite_logs.get("phantom-ai-feed")
+        if feed is not None and feed.text:
+            roi = analyze_learning_roi(feed.text)["details"]
+            items_read += int(roi.get("items_read", 0))
+            items_engaged += int(roi.get("items_engaged", 0))
+
+    top_provider = by_provider.most_common(1)[0][0] if by_provider else None
+    busiest_hour = by_hour.most_common(1)[0][0] if by_hour else None
+    pending = sorted(investigated - applied)
+
+    return {
+        "days_observed": len(window.days),
+        "llm_usage": {
+            "total_calls": sum(by_provider.values()),
+            "by_provider": dict(by_provider),
+            "by_task_kind": dict(by_task),
+            "top_provider": top_provider,
+        },
+        "attention": {
+            "busiest_hour": busiest_hour,
+            "by_hour": dict(by_hour),
+        },
+        "learning_roi": {
+            "items_read": items_read,
+            "items_engaged": items_engaged,
+            "engagement_ratio": round(items_engaged / items_read, 3) if items_read else 0.0,
+        },
+        "jobseek": {
+            "investigated": len(investigated),
+            "applied": len(applied),
+            "pending": len(pending),
+            "pending_companies": pending,
+        },
+    }
+
+
+def render_weekly_report_from_window(window: AggregateWindow) -> str:
+    """Render the cross-satellite weekly digest from a typed window. Shame-free."""
+    roll = weekly_rollup(window)
+    span = f"{window.start} → {window.end}" if window.days else "(empty window)"
+    total_events = sum(len(d.events) for d in window.days)
+
+    lines: list[str] = []
+    lines.append(f"# phantom-companion — weekly report ({span})")
+    lines.append("")
+    lines.append("> Cross-satellite pattern pass. Tone: descriptive, never blame.")
+    lines.append("")
+    lines.append("## Rollup")
+    lines.append(f"- Days observed: **{roll['days_observed']}**")
+    lines.append(f"- Total events: **{total_events}**")
+    lines.append("")
+
+    llm = roll["llm_usage"]
+    lines.append("## LLM usage")
+    if llm["total_calls"] > 0:
+        prov = ", ".join(f"{p}×{n}" for p, n in sorted(llm["by_provider"].items()))
+        lines.append(f"- {llm['total_calls']} model calls this week ({prov}).")
+        if llm["top_provider"]:
+            lines.append(f"- Most-used provider: **{llm['top_provider']}**.")
+    else:
+        lines.append("- No model-call events captured this week — gathering baseline.")
+    lines.append("")
+
+    att = roll["attention"]
+    lines.append("## Attention")
+    if att["busiest_hour"] is not None:
+        lines.append(
+            f"- Busiest activity hour this week was around "
+            f"**{att['busiest_hour']:02d}:00**."
+        )
+    else:
+        lines.append("- Not enough timestamped events yet to spot a busy hour.")
+    lines.append("")
+
+    learn = roll["learning_roi"]
+    lines.append("## Learning ROI")
+    if learn["items_read"] > 0:
+        pct = learn["engagement_ratio"] * 100
+        lines.append(
+            f"- {learn['items_read']} digest items surfaced, "
+            f"{learn['items_engaged']} engaged with ({pct:.0f}%)."
+        )
+    else:
+        lines.append("- No ai-feed digests this week — learning ROI idle.")
+    lines.append("")
+
+    job = roll["jobseek"]
+    lines.append("## Jobseek follow-up")
+    if job["investigated"] > 0:
+        lines.append(
+            f"- {job['investigated']} companies looked into, "
+            f"{job['applied']} applied to, {job['pending']} still open."
+        )
+        if job["pending_companies"]:
+            shown = ", ".join(job["pending_companies"][:5])
+            lines.append(f"- Open to revisit when you have time: {shown}.")
+    else:
+        lines.append("- No jobseek-tagged activity this week — tracker idle.")
+    lines.append("")
+
+    lines.append("## This week's note")
+    if total_events == 0:
+        lines.append(
+            "No events captured this week. The companion is in baseline mode "
+            "and becomes genuinely useful once a few weeks of activity exist."
+        )
+    else:
+        lines.append(
+            f"Captured {total_events} events across {roll['days_observed']} days "
+            "— the rollups above are descriptions of what happened, for you to "
+            "act on as you see fit."
+        )
+    lines.append("")
+
+    text = "\n".join(lines).rstrip() + "\n"
+    ok, reason = shame_free_check(text)
+    if not ok:
+        raise RuntimeError(f"refused to emit shame-leaking report: {reason}")
+    return text
+
+
 def write_daily_report(
     day: str | None = None,
     out_root: Path | None = None,
@@ -266,11 +435,22 @@ def write_weekly_report(
     end_day: str | None = None,
     out_root: Path | None = None,
     mesh_root: Path | None = None,
+    rollup: bool = True,
 ) -> Path:
+    """Write the 7-day weekly report.
+
+    ``rollup=True`` (default, P2-M1) renders the cross-satellite pattern digest
+    off a typed :class:`AggregateWindow`; ``rollup=False`` keeps the legacy
+    per-day-count renderer for callers that want the lighter view.
+    """
     end = date.fromisoformat(end_day) if end_day else date.today()
     days = [(end - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
-    aggs = list(aggregate_range(days, mesh_root=mesh_root).values())
-    text = render_weekly_report(aggs)
+    if rollup:
+        window = aggregate_window(days, mesh_root=mesh_root)
+        text = render_weekly_report_from_window(window)
+    else:
+        aggs = list(aggregate_range(days, mesh_root=mesh_root).values())
+        text = render_weekly_report(aggs)
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end.isoformat()}-weekly-report.md"
