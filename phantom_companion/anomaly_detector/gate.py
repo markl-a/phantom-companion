@@ -96,21 +96,36 @@ def gated_anomaly_alerts(
         return []
 
     values = [v for (_, v) in series]
-    series_med = statistics.median(values)
-    series_scale = 1.4826 * _mad(values, series_med)  # robust, series-wide
-    abs_floor = ALERT_MIN_ABS_SCALES * series_scale
+    series_scale = 1.4826 * _mad(values, statistics.median(values))
 
     points = detect(series, window=window, threshold=threshold)
     alerts: list[AnomalyAlert] = []
     for i, p in enumerate(points):
         if not p.is_anomaly:
             continue
+        # Per-point density: a point only has ``i`` days of history behind it.
+        # Even in a long batch, an EARLY point whose own baseline is thinner
+        # than MIN_SAMPLES must not surface — otherwise the gate is only a
+        # whole-series check and an early blip still leaks (codex finding #1).
+        if i + 1 < MIN_SAMPLES:
+            continue
         start = max(0, i - window)
         recent = [v for (_, v) in series[start:i]]
-        mid = sorted(recent)[len(recent) // 2] if recent else series_med
-        # Absolute-deviation floor: ignore "statistically loud but tiny" blips.
-        if series_scale > 0 and abs(p.value - mid) < abs_floor:
+        if not recent:
             continue
+        recent_med = statistics.median(recent)
+        local_scale = 1.4826 * _mad(recent, recent_med)
+        # Absolute-deviation floor = max(local, whole-series) scale:
+        #  - the whole-series term gives a sensible minimum so a degenerate
+        #    local MAD can't manufacture a tiny floor (the MAD-collapse FP);
+        #  - the local term lets a genuinely tight recent regime still flag a
+        #    smaller-but-real deviation (codex finding #2). A real spike clears
+        #    either; a trivial blip clears neither.
+        scale = max(local_scale, series_scale)
+        abs_floor = ALERT_MIN_ABS_SCALES * scale
+        if scale > 0 and abs(p.value - recent_med) < abs_floor:
+            continue
+        mid = recent_med
         direction = "above" if p.value > mid else ("below" if p.value < mid else "unusual")
         alerts.append(
             AnomalyAlert(

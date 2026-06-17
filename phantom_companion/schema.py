@@ -27,7 +27,10 @@ from typing import Any
 
 from .aggregator import SATELLITES, aggregate_day
 
-SCHEMA_VERSION = 1
+# Bumped to 2 in P1-M3: HealthSample gained ``activity_min`` + ``source``, which
+# changes the serialized record shape. The cache key embeds SCHEMA_VERSION, so
+# the bump cleanly invalidates any window cached under the v1 shape.
+SCHEMA_VERSION = 2
 
 
 # ---------------------------------------------------------------------------

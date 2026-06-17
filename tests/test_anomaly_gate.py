@@ -75,6 +75,28 @@ def test_wide_window_no_spike_raises_no_alert() -> None:
     assert alerts == []
 
 
+def test_early_point_below_per_point_density_is_suppressed() -> None:
+    # A long-ENOUGH series (passes the whole-series gate) but the spike sits at
+    # an EARLY index whose own trailing history is < MIN_SAMPLES -> must not
+    # surface. Otherwise the gate would only be a whole-series check.
+    series = _health_series(MIN_SAMPLES + 10, seed=9)
+    # Inject the spike at index 8 (only 8 days of history behind it).
+    series[8] = (series[8][0], 1.0)
+    alerts = gated_anomaly_alerts(series, metric="sleep_hr")
+    assert all(a.day != series[8][0] for a in alerts), (
+        "an early point with < MIN_SAMPLES history must not alert"
+    )
+
+
+def test_late_point_above_per_point_density_surfaces() -> None:
+    # Same magnitude spike, but placed where it has >= MIN_SAMPLES history.
+    series = _health_series(MIN_SAMPLES + 10, seed=9)
+    idx = MIN_SAMPLES + 4
+    series[idx] = (series[idx][0], 1.0)
+    alerts = gated_anomaly_alerts(series, metric="sleep_hr")
+    assert any(a.day == series[idx][0] for a in alerts)
+
+
 def test_gate_is_exactly_min_samples() -> None:
     # At exactly MIN_SAMPLES, the gate is open.
     series = _health_series(MIN_SAMPLES)

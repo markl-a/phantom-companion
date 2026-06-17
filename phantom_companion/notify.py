@@ -113,17 +113,26 @@ _RELAY_NOTICES: dict[str, str] = {
 _DEFAULT_NOTICE = "There is a new companion update on your device."
 
 
+# Only these kinds may cross the device boundary verbatim. ``kind`` is otherwise
+# free-form, so an unknown/caller-supplied kind is coarsened to "update" — a
+# bad caller must not be able to smuggle PII out through the kind field.
+_RELAYABLE_KINDS = frozenset(_RELAY_NOTICES)
+
+
 def minimize_payload(notif: Notification) -> dict[str, Any]:
     """Reduce a notification to the minimal, non-identifying signal safe to relay.
 
-    Keeps only the ``kind`` and a fixed neutral notice. Drops ``details``
-    entirely and replaces the free-form ``body`` (which may itself contain
-    specifics) with the canned notice. The result carries enough to nudge the
-    user to open the app, and nothing that identifies *what* happened.
+    Keeps only an *allowlisted* ``kind`` and a fixed neutral notice. Drops
+    ``details`` entirely and replaces the free-form ``body`` (which may itself
+    contain specifics) with the canned notice. An unrecognised ``kind`` is
+    coarsened to ``"update"`` so the free-form field cannot leak PII. The result
+    carries enough to nudge the user to open the app, and nothing that
+    identifies *what* happened.
     """
+    safe_kind = notif.kind if notif.kind in _RELAYABLE_KINDS else "update"
     return {
-        "kind": notif.kind,
-        "notice": _RELAY_NOTICES.get(notif.kind, _DEFAULT_NOTICE),
+        "kind": safe_kind,
+        "notice": _RELAY_NOTICES.get(safe_kind, _DEFAULT_NOTICE),
         # An explicit marker so a downstream auditor can confirm minimisation ran.
         "minimized": True,
     }

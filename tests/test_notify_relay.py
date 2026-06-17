@@ -147,6 +147,15 @@ def test_relayed_payload_is_the_minimized_one(tmp_path: Path) -> None:
     assert ok, reason
 
 
+def test_minimize_coarsens_unknown_kind_to_block_pii_in_kind() -> None:
+    # `kind` is free-form; a bad caller must not smuggle PII out through it.
+    n = Notification(kind="applied to Garmin role; sleep 4.1h", title="t", body="b")
+    minimal = minimize_payload(n)
+    blob = json.dumps(minimal, ensure_ascii=False)
+    assert "Garmin" not in blob and "4.1" not in blob
+    assert minimal["kind"] == "update", "unknown kind must be coarsened"
+
+
 def test_minimize_payload_drops_freeform_body() -> None:
     # The free-form body may itself contain specifics; the minimiser must not
     # forward it verbatim — only a fixed, non-identifying notice.
