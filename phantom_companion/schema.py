@@ -27,7 +27,10 @@ from typing import Any
 
 from .aggregator import SATELLITES, aggregate_day
 
-SCHEMA_VERSION = 1
+# Bumped to 2 in P1-M3: HealthSample gained ``activity_min`` + ``source``, which
+# changes the serialized record shape. The cache key embeds SCHEMA_VERSION, so
+# the bump cleanly invalidates any window cached under the v1 shape.
+SCHEMA_VERSION = 2
 
 
 # ---------------------------------------------------------------------------
@@ -143,10 +146,20 @@ class SatelliteDailyLog:
 
 @dataclass(frozen=True)
 class HealthSample:
+    """One day's health vitals (④ secure-connector export shape).
+
+    ``activity_min`` (active minutes) and ``source`` (which device/app the
+    export came from, e.g. ``garmin`` / ``apple_health``) are carried so the
+    reporter can attribute the data and the consent-gated relay can decide what
+    is safe to send off-device.
+    """
+
     day: str
     sleep_hr: float = 0.0
     hrv_ms: float = 0.0
     resting_hr: int = 0
+    activity_min: int = 0
+    source: str = "unknown"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -154,6 +167,8 @@ class HealthSample:
             "sleep_hr": self.sleep_hr,
             "hrv_ms": self.hrv_ms,
             "resting_hr": self.resting_hr,
+            "activity_min": self.activity_min,
+            "source": self.source,
         }
 
     @classmethod
@@ -163,6 +178,8 @@ class HealthSample:
             sleep_hr=float(d.get("sleep_hr", 0.0)),
             hrv_ms=float(d.get("hrv_ms", 0.0)),
             resting_hr=int(d.get("resting_hr", 0)),
+            activity_min=int(d.get("activity_min", 0)),
+            source=str(d.get("source", "unknown")),
         )
 
 
@@ -290,12 +307,12 @@ def aggregate_window(
         health = (
             HealthSample.from_dict({"day": day, **health_by_day[day]})
             if day in health_by_day
-            else None
+            else raw.health
         )
         output = (
             OutputSample.from_dict({"day": day, **output_by_day[day]})
             if day in output_by_day
-            else None
+            else raw.output
         )
         day_aggs.append(
             DayAggregate(

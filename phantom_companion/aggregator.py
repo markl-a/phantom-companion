@@ -18,7 +18,10 @@ import subprocess
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:  # avoid a runtime import cycle (schema imports aggregator)
+    from .schema import HealthSample, OutputSample
 
 DEFAULT_MESH_ROOT = Path(os.environ.get("PHANTOM_MESH_HOME", Path.home() / ".phantom-mesh"))
 
@@ -42,6 +45,11 @@ class DailyAggregate:
     heartbeats: dict[str, bool] = field(default_factory=dict)
     ai_feed_log: str = ""
     flow_log: str = ""
+    # P1-M3 — parallel ④ secure-connector health + git-output streams, attached
+    # when available so the daily reporter can run the real (gated) correlation
+    # instead of the old hard-coded empty inputs. ``None`` means "not ingested".
+    health: "HealthSample | None" = None
+    output: "OutputSample | None" = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -166,6 +174,15 @@ def aggregate_day(day: str | None = None, mesh_root: Path | None = None) -> Dail
     logs_root = root / "logs"
     satellite_logs = {sat: _read_satellite_log(logs_root, sat, day) for sat in SATELLITES}
     heartbeats = {sat: _heartbeat_alive(logs_root, sat) for sat in SATELLITES}
+    # P1-M3: attach the parallel ④ health + developer-output streams when an
+    # export exists on disk for this day, so the health×output correlation runs
+    # on real data instead of the hard-coded empty inputs.
+    from .health_ingest import read_health_window, read_output_window
+    from .schema import HealthSample, OutputSample
+    health_map = read_health_window(root, [day])
+    output_map = read_output_window(root, [day])
+    health = HealthSample.from_dict({"day": day, **health_map[day]}) if day in health_map else None
+    output = OutputSample.from_dict({"day": day, **output_map[day]}) if day in output_map else None
     return DailyAggregate(
         day=day,
         events=events,
@@ -173,6 +190,8 @@ def aggregate_day(day: str | None = None, mesh_root: Path | None = None) -> Dail
         heartbeats=heartbeats,
         ai_feed_log=satellite_logs.get("phantom-ai-feed", ""),
         flow_log=satellite_logs.get("phantom-flow", ""),
+        health=health,
+        output=output,
     )
 
 

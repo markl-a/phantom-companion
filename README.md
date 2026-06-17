@@ -41,10 +41,19 @@ phantom-mesh 找 pattern,寫日 / 週報,語言**結構上保證沒有羞辱**�
     求職 follow-up)
   - reporter with shame-free lint
   - cross-satellite read 即 day-one 可運作
-- 🟡 **Tier 2 next**: Telegram / email push、SM-2 spaced repetition 給
-  weekly pattern、跨 satellite correlation engine 升級。
-- 🟡 **Tier 3 (M3-M4, ~2026-09)**: 健康 vs 生產力的 statistically-sound
-  correlation(需要 ≥ 60 天資料)、自動 intervention 建議。
+- ✅ **Tier 2 / Tier 3 statistical layer shipped** (all behind the single-source
+  `MIN_SAMPLES` ≈ 14d density gate):
+  - **P1-M3** real ④ secure-connector health (sleep / HRV / resting-HR /
+    activity / source) + git output wired into the daily report; gated
+    Pearson **and** Spearman correlation with strictly **no causation** wording;
+    below the gate → directional-only.
+  - **P2-M1** weekly cross-satellite rollups (LLM usage / attention / learning
+    ROI / jobseek) off a typed `AggregateWindow` + SQLite cache.
+  - **P2-M2** density-gated anomaly alerts (rolling-MAD on health / LLM-cost /
+    attention; short noisy windows raise nothing; alerts are shame-free).
+  - **P3-M1** local-first notification delivery; off-device relay is opt-in +
+    consent-gated + payload-minimised (no PII crosses the device boundary).
+  - **P3-M2** nightly subjective check-in + monthly / quarterly trend digests.
 - ⚠️ **Honest caveat**: 真正有用要 **2-3 個月累積 phantom-mesh events** 之
   後。今天跑會吐 honest stub 報告,結構正確但 insight 稀薄 — 這是 by design,
   不是 bug。
@@ -59,8 +68,15 @@ pip install -e .
 # 跑日報(會吃 ~/.phantom-mesh/events/ + 各 satellite log)
 python -m phantom_companion.cli daily-report
 
-# 週報
+# 週報(cross-satellite pattern rollup:LLM / 注意力 / 學習 ROI / 求職)
 python -m phantom_companion.cli weekly-report
+
+# 月報 / 季報(long-window trend,direction-only,density-gated)
+python -m phantom_companion.cli trends --period monthly
+python -m phantom_companion.cli trends --period quarterly
+
+# 每晚 1 行主觀紀錄(gut 1-5 / mood 1-5 / sleep hr,local-only JSONL)
+python -m phantom_companion.cli checkin "2026-05-22 gut=4 mood=3 sleep=7.2"
 
 pytest -v
 ```

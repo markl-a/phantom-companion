@@ -79,6 +79,37 @@ def _pearson_r(xs: list[float], ys: list[float]) -> float | None:
     return num / (den_x * den_y)
 
 
+def _rank(values: list[float]) -> list[float]:
+    """Average (tie-corrected) ranks, stdlib-only — no scipy dependency.
+
+    Equal values share the mean of the ranks they span, so Spearman handles
+    the discrete commit-count ties that are common in this data.
+    """
+    order = sorted(range(len(values)), key=lambda i: values[i])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+            j += 1
+        avg = (i + j) / 2.0 + 1.0  # ranks are 1-based
+        for k in range(i, j + 1):
+            ranks[order[k]] = avg
+        i = j + 1
+    return ranks
+
+
+def _spearman_r(xs: list[float], ys: list[float]) -> float | None:
+    """Spearman rank correlation; ``None`` if undefined (no rank variance).
+
+    Spearman = Pearson on the ranks, so a monotone-but-nonlinear sleep↔output
+    relationship is still captured where Pearson would understate it.
+    """
+    if len(xs) < 2 or len(ys) != len(xs):
+        return None
+    return _pearson_r(_rank(xs), _rank(ys))
+
+
 def correlate_health_output(samples: list[dict[str, Any]]) -> dict[str, Any]:
     """Multi-day Pearson correlation between sleep and commit output.
 
@@ -108,7 +139,9 @@ def correlate_health_output(samples: list[dict[str, Any]]) -> dict[str, Any]:
     sleep = [float(s.get("sleep_hr", 0.0)) for s in samples]
     commits = [float(s.get("commits", 0)) for s in samples]
     r = _pearson_r(sleep, commits)
+    rho = _spearman_r(sleep, commits)
     details["pearson_r"] = round(r, 4) if r is not None else None
+    details["spearman_r"] = round(rho, 4) if rho is not None else None
     if r is None:
         summary = (
             f"{n} days observed, but sleep or output had no variance — "
@@ -116,9 +149,14 @@ def correlate_health_output(samples: list[dict[str, Any]]) -> dict[str, Any]:
         )
     else:
         direction = "positive" if r > 0 else ("negative" if r < 0 else "flat")
+        rho_part = f", Spearman ρ={rho:.2f}" if rho is not None else ""
+        # Strictly descriptive: report the association, never claim one drives
+        # the other. The MIN_SAMPLES gate above means this only ships once the
+        # window is wide enough for the coefficient to mean anything.
         summary = (
-            f"{n} days observed — sleep↔output correlation r={r:.2f} "
-            f"({direction}). This is a description, not a verdict."
+            f"{n} days observed — sleep↔output association r={r:.2f} "
+            f"({direction}{rho_part}). This is a description of co-movement, "
+            "not a verdict and not a claim that one drives the other."
         )
     return {
         "module": MODULE,

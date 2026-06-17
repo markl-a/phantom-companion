@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .reporter import write_daily_report, write_weekly_report
+from .reporter import write_daily_report, write_trend_report, write_weekly_report
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -38,6 +38,25 @@ def _build_parser() -> argparse.ArgumentParser:
     weekly = sub.add_parser("weekly-report", help="Write a 7-day weekly report.")
     weekly.add_argument("--end", default=None, help="Last day of the window (ISO).")
     weekly.add_argument("--out", type=Path, default=None, help="Output directory.")
+
+    trends = sub.add_parser(
+        "trends", help="Write a monthly (30d) / quarterly (90d) trend digest."
+    )
+    trends.add_argument(
+        "--period", choices=("monthly", "quarterly"), default="monthly",
+        help="Trend window (default: monthly).",
+    )
+    trends.add_argument("--end", default=None, help="Last day of the window (ISO).")
+    trends.add_argument("--out", type=Path, default=None, help="Output directory.")
+
+    checkin = sub.add_parser(
+        "checkin", help="Record one nightly subjective check-in line (local only)."
+    )
+    checkin.add_argument(
+        "line",
+        help="e.g. '2026-05-22 gut=4 mood=3 sleep=7.2' or '2026-05-22, 4, 3, 7.2'.",
+    )
+    checkin.add_argument("--out", type=Path, default=None, help="Output directory.")
     return parser
 
 
@@ -49,14 +68,40 @@ def main(argv: list[str] | None = None) -> int:
             path = write_daily_report(day=args.day, out_root=args.out, mesh_root=args.mesh_root)
         elif args.cmd == "weekly-report":
             path = write_weekly_report(end_day=args.end, out_root=args.out, mesh_root=args.mesh_root)
+        elif args.cmd == "trends":
+            path = write_trend_report(
+                period=args.period, end_day=args.end, out_root=args.out,
+                mesh_root=args.mesh_root,
+            )
+        elif args.cmd == "checkin":
+            path = _record_checkin(args.line, out_root=args.out)
         else:  # pragma: no cover — argparse rejects unknown subcommands
             parser.error(f"unknown command: {args.cmd}")
             return 2
     except RuntimeError as exc:
         print(f"phantom-companion: {exc}", file=sys.stderr)
         return 1
+    except ValueError as exc:  # bad check-in line
+        print(f"phantom-companion: {exc}", file=sys.stderr)
+        return 1
     print(str(path))
     return 0
+
+
+def _record_checkin(line: str, out_root: Path | None = None) -> Path:
+    """Append one nightly subjective check-in to a LOCAL-ONLY JSONL store."""
+    import json
+
+    from .checkin import parse_checkin_line
+    from .reporter import DEFAULT_REPORT_ROOT
+
+    checkin = parse_checkin_line(line)
+    out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "checkins.jsonl"
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(checkin.to_dict(), ensure_ascii=False) + "\n")
+    return path
 
 
 if __name__ == "__main__":
