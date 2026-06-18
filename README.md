@@ -8,7 +8,6 @@
 
 📑 All docs: see [docs/INDEX.md](docs/INDEX.md). · **Status:** see [ROADMAP.md](ROADMAP.md).
 
-![status: alpha · Tier 1 (gathering baseline)](https://img.shields.io/badge/status-alpha%20%C2%B7%20Tier%201%20(baseline)-orange)
 ![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 [![phantom-mesh ecosystem](https://img.shields.io/badge/ecosystem-phantom--mesh-purple)](https://github.com/markl-a/phantom-mesh)
 
@@ -122,16 +121,7 @@ sync)、**P1** (跨平台 — 行為資料來自 Mac/Win/Linux/iOS/Android)。
 - **Co-builders**: 想要 self-hosted RescueTime + Bearable + Rize 整合版的
   quantified-self / productivity 玩家。
 
-## Roadmap (per master plan)
-
-- 詳細設計: [`docs/07-phantom-companion.md`](docs/)
-- 七專案總圖: [phantom-mesh planning tree](https://github.com/markl-a/phantom-mesh)
-
-3-bullet:
-
-1. **M2** — Telegram/email push、cross-satellite correlation 升級。
-2. **M3-M4** — statistically-sound 健康 vs 生產力(≥ 60 天資料後)。
-3. **Post-M4** — 自動 intervention 建議、行為 A/B 測試 framework。
+**Roadmap:** see [ROADMAP.md](ROADMAP.md).
 
 ## When this becomes valuable
 
