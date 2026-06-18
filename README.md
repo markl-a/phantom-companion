@@ -6,6 +6,8 @@
 > Bearable 的整合版,phantom-mesh 七專案的 keystone(唯一消費其他六個輸出
 > 的專案),招聘對齊 Garmin / Anthropic / Micron AIoT。
 
+📑 All docs: see [docs/INDEX.md](docs/INDEX.md). · **Status:** see [ROADMAP.md](ROADMAP.md).
+
 ![status: alpha · Tier 1 (gathering baseline)](https://img.shields.io/badge/status-alpha%20%C2%B7%20Tier%201%20(baseline)-orange)
 ![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)
 [![phantom-mesh ecosystem](https://img.shields.io/badge/ecosystem-phantom--mesh-purple)](https://github.com/markl-a/phantom-mesh)
@@ -32,31 +34,9 @@ Bearable 是手動記錄。**phantom-companion 是第一個跨裝置 + 自動 + 
 活(LLM 使用、commit、RSS 閱讀、行事曆、健康、求職 leads),跨整個
 phantom-mesh 找 pattern,寫日 / 週報,語言**結構上保證沒有羞辱**。
 
-## Status (2026-05-22)
+## Status
 
-- ✅ **Tier 1 shipped**:
-  - `phantom_companion.aggregator` — 從 `~/.phantom-mesh/events/` 與其他 6
-    個 satellite 的 log 目錄聚合
-  - 5 insight modules (LLM ROI / 注意力切換 / 健康×生產力 / 學習 ROI /
-    求職 follow-up)
-  - reporter with shame-free lint
-  - cross-satellite read 即 day-one 可運作
-- ✅ **Tier 2 / Tier 3 statistical layer shipped** (all behind the single-source
-  `MIN_SAMPLES` ≈ 14d density gate):
-  - **P1-M3** real ④ secure-connector health (sleep / HRV / resting-HR /
-    activity / source) + git output wired into the daily report; gated
-    Pearson **and** Spearman correlation with strictly **no causation** wording;
-    below the gate → directional-only.
-  - **P2-M1** weekly cross-satellite rollups (LLM usage / attention / learning
-    ROI / jobseek) off a typed `AggregateWindow` + SQLite cache.
-  - **P2-M2** density-gated anomaly alerts (rolling-MAD on health / LLM-cost /
-    attention; short noisy windows raise nothing; alerts are shame-free).
-  - **P3-M1** local-first notification delivery; off-device relay is opt-in +
-    consent-gated + payload-minimised (no PII crosses the device boundary).
-  - **P3-M2** nightly subjective check-in + monthly / quarterly trend digests.
-- ⚠️ **Honest caveat**: 真正有用要 **2-3 個月累積 phantom-mesh events** 之
-  後。今天跑會吐 honest stub 報告,結構正確但 insight 稀薄 — 這是 by design,
-  不是 bug。
+**Status:** see [ROADMAP.md](ROADMAP.md).
 
 ## 30-second quickstart
 
