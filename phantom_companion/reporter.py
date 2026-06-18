@@ -28,6 +28,7 @@ from .insight_modules import (
     analyze_llm_usage,
 )
 from .insight_modules.health_productivity_correlation import correlate_health_output
+from .notify import deliver, LocalSink, Notification, NotifyConfig
 from .schema import AggregateWindow, aggregate_window
 
 import re as _re
@@ -78,6 +79,31 @@ def shame_free_check(text: str) -> tuple[bool, str]:
 
 
 DEFAULT_REPORT_ROOT = Path.home() / ".phantom-mesh" / "logs" / "phantom-companion"
+
+
+def _emit_notification(
+    *,
+    kind,
+    title,
+    body,
+    details,
+    out_dir,
+    notify_config=None,
+    local_sink=None,
+    relay_sink=None,
+):
+    """Deliver a report notification local-first. Local sink always; relay only if opted-in/consented (NotifyConfig). Notification text is shame-free linted before delivery."""
+    check_text = f"{title}\n{body}"
+    ok, reason = shame_free_check(check_text)
+    if not ok:
+        raise RuntimeError(f"refused to emit shame-leaking notification: {reason}")
+    sink = local_sink if local_sink is not None else LocalSink(Path(out_dir) / "notifications")
+    return deliver(
+        Notification(kind=kind, title=title, body=body, details=details),
+        config=notify_config or NotifyConfig(),
+        local_sink=sink,
+        relay_sink=relay_sink,
+    )
 
 
 def _health_inputs(agg: DailyAggregate) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -469,6 +495,9 @@ def write_daily_report(
     day: str | None = None,
     out_root: Path | None = None,
     mesh_root: Path | None = None,
+    notify_config=None,
+    local_sink=None,
+    relay_sink=None,
 ) -> Path:
     requested_day = day or date.today().isoformat()
     effective_mesh_root = Path(mesh_root) if mesh_root else DEFAULT_REPORT_ROOT.parent.parent
@@ -489,6 +518,16 @@ def write_daily_report(
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{agg.day}-report.md"
     path.write_text(text, encoding="utf-8")
+    _emit_notification(
+        kind="daily_report",
+        title="Your daily report is ready on your device.",
+        body="Today's report has been written locally.",
+        details={"report_path": str(path), "events": len(agg.events), "day": agg.day},
+        out_dir=out_dir,
+        notify_config=notify_config,
+        local_sink=local_sink,
+        relay_sink=relay_sink,
+    )
     return path
 
 
@@ -497,6 +536,9 @@ def write_weekly_report(
     out_root: Path | None = None,
     mesh_root: Path | None = None,
     rollup: bool = True,
+    notify_config=None,
+    local_sink=None,
+    relay_sink=None,
 ) -> Path:
     """Write the 7-day weekly report.
 
@@ -519,6 +561,47 @@ def write_weekly_report(
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end.isoformat()}-weekly-report.md"
     path.write_text(text, encoding="utf-8")
+    _emit_notification(
+        kind="weekly_digest",
+        title="Your weekly review is ready on your device.",
+        body="This week's digest has been written locally.",
+        details={"report_path": str(path)},
+        out_dir=out_dir,
+        notify_config=notify_config,
+        local_sink=local_sink,
+        relay_sink=relay_sink,
+    )
+    return path
+
+
+def write_anomaly_alerts(
+    window,
+    *,
+    metric="attention",
+    out_root=None,
+    notify_config=None,
+    local_sink=None,
+    relay_sink=None,
+):
+    """Detect gated anomalies over a typed AggregateWindow for one metric, render the shame-free alert text, write it to <out>/<window.end>-anomaly-alerts.md, AND deliver a kind='anomaly' notification (local-first, relay gated). Returns the written Path."""
+    from .anomaly_detector import detect_metric_anomalies, render_anomaly_alerts
+
+    alerts = detect_metric_anomalies(window, metric)
+    text = render_anomaly_alerts(alerts)
+    out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{window.end}-anomaly-alerts.md"
+    path.write_text(text, encoding="utf-8")
+    _emit_notification(
+        kind="anomaly",
+        title="Something in your recent data is worth a glance on your device.",
+        body="An anomaly-alert summary has been written locally.",
+        details={"report_path": str(path), "alert_count": len(alerts), "metric": metric},
+        out_dir=out_dir,
+        notify_config=notify_config,
+        local_sink=local_sink,
+        relay_sink=relay_sink,
+    )
     return path
 
 
