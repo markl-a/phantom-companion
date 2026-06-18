@@ -470,7 +470,20 @@ def write_daily_report(
     out_root: Path | None = None,
     mesh_root: Path | None = None,
 ) -> Path:
-    agg = aggregate_day(day, mesh_root=mesh_root)
+    requested_day = day or date.today().isoformat()
+    effective_mesh_root = Path(mesh_root) if mesh_root else DEFAULT_REPORT_ROOT.parent.parent
+    try:
+        from .output_ingest import ingest_output
+
+        ingest_output(
+            repo=Path.cwd(),
+            mesh_root=effective_mesh_root,
+            days=[requested_day],
+            overwrite=False,
+        )
+    except Exception:
+        pass
+    agg = aggregate_day(requested_day, mesh_root=mesh_root)
     text = render_daily_report(agg)
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
