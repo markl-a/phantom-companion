@@ -181,10 +181,59 @@ def read_output_window(
     return out
 
 
+def write_health_samples(
+    mesh_root: str | os.PathLike[str] | Path,
+    samples: dict[str, HealthSample],
+    overwrite: bool = True,
+) -> list[Path]:
+    """Write normalized ``health-<day>.json`` files under the secure-connector log dir.
+
+    Mirrors :func:`phantom_companion.output_ingest.write_output_samples`: writes each
+    sample to ``<mesh_root>/logs/phantom-secure-connector/health-<day>.json`` in the
+    exact shape :func:`read_health_window` reads back (``HealthSample.to_dict()``).
+    """
+    out_dir = Path(mesh_root) / "logs" / "phantom-secure-connector"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for day, sample in sorted(samples.items()):
+        path = out_dir / f"health-{day}.json"
+        if not overwrite and path.exists():
+            continue
+        path.write_text(json.dumps(sample.to_dict(), sort_keys=True), encoding="utf-8")
+        written.append(path)
+    return written
+
+
+def ingest_health(
+    export_file: str | os.PathLike[str] | Path,
+    mesh_root: str | os.PathLike[str] | Path,
+    overwrite: bool = True,
+) -> list[Path]:
+    """Parse a secure-connector export file and write normalized health samples.
+
+    The export file is JSON: either one day's export object (the shape
+    :func:`parse_secure_connector_export` consumes) or a list of such objects
+    (a multi-day stream -> :func:`parse_export_stream`). Reuses the EXISTING parser
+    (tolerates Apple-HealthKit camelCase and Garmin snake_case) and writes the
+    normalized ``health-<day>.json`` files via :func:`write_health_samples`.
+    """
+    raw = json.loads(Path(export_file).read_text(encoding="utf-8"))
+    if isinstance(raw, list):
+        samples = parse_export_stream(raw)
+    elif isinstance(raw, dict):
+        sample = parse_secure_connector_export(raw)
+        samples = {sample.day: sample}
+    else:
+        raise HealthExportError("export must be a JSON object or list of objects")
+    return write_health_samples(mesh_root, samples, overwrite=overwrite)
+
+
 __all__ = [
     "HealthExportError",
     "parse_secure_connector_export",
     "parse_export_stream",
     "read_health_window",
     "read_output_window",
+    "write_health_samples",
+    "ingest_health",
 ]

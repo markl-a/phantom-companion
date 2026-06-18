@@ -80,6 +80,16 @@ def _build_parser() -> argparse.ArgumentParser:
     ingest.add_argument("--repo", type=Path, default=Path.cwd(), help="Git repo to inspect.")
     ingest.add_argument("--day", default=None, help="ISO YYYY-MM-DD day to ingest.")
     ingest.add_argument("--since", default=None, help="ISO YYYY-MM-DD inclusive window start.")
+
+    ingest_health = sub.add_parser(
+        "ingest-health",
+        help="Parse a secure-connector export into normalized health samples.",
+    )
+    ingest_health.add_argument(
+        "export_file",
+        type=Path,
+        help="Path to the export JSON (one day object or a list of day rows).",
+    )
     return parser
 
 
@@ -115,6 +125,15 @@ def main(argv: list[str] | None = None) -> int:
                 days=_ingest_days(args.since, args.day),
             )
             print(f"{len(paths)} output files written")
+            for written in paths:
+                print(str(written))
+            return 0
+        elif args.cmd == "ingest-health":
+            from .health_ingest import ingest_health
+
+            mesh_root = args.mesh_root if args.mesh_root else Path.home() / ".phantom-mesh"
+            paths = ingest_health(export_file=args.export_file, mesh_root=mesh_root)
+            print(f"{len(paths)} health files written")
             for written in paths:
                 print(str(written))
             return 0
