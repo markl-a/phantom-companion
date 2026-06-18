@@ -114,6 +114,7 @@ def render_trend_report(
     trends: list[TrendResult],
     period: str = "monthly",
     health_correlation: dict | None = None,
+    subjective_correlation: dict | None = None,
 ) -> str:
     """Render a monthly / quarterly trend digest. Always shame-free."""
     from .reporter import shame_free_check  # local import avoids a cycle
@@ -147,6 +148,11 @@ def render_trend_report(
     if health_correlation is not None:
         lines.append("## Health × output")
         lines.append(f"- {health_correlation['summary']}")
+        lines.append("")
+
+    if subjective_correlation is not None and subjective_correlation.get("baseline_ready"):
+        lines.append("## Mood × output")
+        lines.append(f"- {subjective_correlation['summary']}")
         lines.append("")
 
     text = "\n".join(lines).rstrip() + "\n"

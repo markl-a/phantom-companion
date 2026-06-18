@@ -164,3 +164,49 @@ def correlate_health_output(samples: list[dict[str, Any]]) -> dict[str, Any]:
         "details": details,
         "baseline_ready": True,
     }
+
+
+def correlate_subjective_output(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    """Multi-day Pearson correlation between subjective mood and commit output."""
+    n = len(samples)
+    baseline_ready = n >= MIN_SAMPLES
+
+    details: dict[str, Any] = {"n_samples": n, "min_samples": MIN_SAMPLES}
+
+    if not baseline_ready:
+        summary = (
+            f"{n}/{MIN_SAMPLES} days of paired mood+output data — the "
+            "correlation stays in baseline mode until the window fills."
+        )
+        return {
+            "module": MODULE,
+            "summary": summary,
+            "details": details,
+            "baseline_ready": False,
+        }
+
+    mood = [float(s.get("mood", 0.0)) for s in samples]
+    commits = [float(s.get("commits", 0)) for s in samples]
+    r = _pearson_r(mood, commits)
+    rho = _spearman_r(mood, commits)
+    details["pearson_r"] = round(r, 4) if r is not None else None
+    details["spearman_r"] = round(rho, 4) if rho is not None else None
+    if r is None:
+        summary = (
+            f"{n} days observed, but mood or output had no variance — "
+            "correlation is undefined for now."
+        )
+    else:
+        direction = "positive" if r > 0 else ("negative" if r < 0 else "flat")
+        rho_part = f", Spearman ρ={rho:.2f}" if rho is not None else ""
+        summary = (
+            f"{n} days observed — mood↔output association r={r:.2f} "
+            f"({direction}{rho_part}). This is a description of co-movement, "
+            "not a verdict and not a claim that one drives the other."
+        )
+    return {
+        "module": MODULE,
+        "summary": summary,
+        "details": details,
+        "baseline_ready": True,
+    }
