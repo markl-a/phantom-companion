@@ -310,6 +310,12 @@ def render_weekly_report(aggs: Iterable[DailyAggregate]) -> str:
 # P2-M1 — weekly cross-satellite pattern rollups (typed AggregateWindow)
 # ---------------------------------------------------------------------------
 
+# A still-pending jobseek lead whose most-recent activity day is at least this
+# many days before the window's end ("now") is surfaced as a gentle, ranked
+# "worth a nudge" — never as a failure.
+JOBSEEK_STALE_DAYS = 7
+
+
 def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
     """Lift a week of per-day signal into four behavioural-lens rollups.
 
@@ -329,6 +335,7 @@ def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
     by_hour: Counter[int] = Counter()
     investigated: set[str] = set()
     applied: set[str] = set()
+    last_seen: dict[str, str] = {}  # company -> most-recent ISO day (first 10 of ts)
     items_read = 0
     items_engaged = 0
 
@@ -349,6 +356,9 @@ def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
                 tags = set(ev.tags)
                 if "jobseek" in tags or "company_research" in tags:
                     investigated.add(ev.company)
+                    day10 = ev.timestamp[:10]
+                    if day10 and day10 > last_seen.get(ev.company, ""):
+                        last_seen[ev.company] = day10
                 if ev.applied or "applied" in tags:
                     applied.add(ev.company)
         # learning ROI from the ai-feed digest log for the day.
@@ -361,6 +371,21 @@ def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
     top_provider = by_provider.most_common(1)[0][0] if by_provider else None
     busiest_hour = by_hour.most_common(1)[0][0] if by_hour else None
     pending = sorted(investigated - applied)
+    # Aging — a STILL-PENDING lead untouched for >= JOBSEEK_STALE_DAYS (measured
+    # from its most-recent activity day to the window's end) is surfaced as a
+    # ranked stale lead, oldest first. Reuses the scan above; no re-scan.
+    stale_leads: list[dict[str, Any]] = []
+    window_end = window.end
+    if window_end is not None:
+        end_date = date.fromisoformat(window_end)
+        for company in pending:
+            seen = last_seen.get(company)
+            if not seen:
+                continue
+            days_open = (end_date - date.fromisoformat(seen)).days
+            if days_open >= JOBSEEK_STALE_DAYS:
+                stale_leads.append({"company": company, "days_open": days_open})
+        stale_leads.sort(key=lambda s: (-s["days_open"], s["company"]))
 
     # P1-M3 — pair each day's ④ health sample with that day's developer output
     # and run the multi-day statistical correlation (gated on MIN_SAMPLES inside
@@ -399,6 +424,7 @@ def weekly_rollup(window: AggregateWindow) -> dict[str, Any]:
             "applied": len(applied),
             "pending": len(pending),
             "pending_companies": pending,
+            "stale_leads": stale_leads,
         },
         "health_output": health_correlation,
     }
@@ -464,6 +490,11 @@ def render_weekly_report_from_window(window: AggregateWindow) -> str:
         if job["pending_companies"]:
             shown = ", ".join(job["pending_companies"][:5])
             lines.append(f"- Open to revisit when you have time: {shown}.")
+        for lead in job.get("stale_leads") or []:
+            lines.append(
+                f"- Worth a nudge: **{lead['company']}** — open "
+                f"{lead['days_open']} days, worth another look when you have time."
+            )
     else:
         lines.append("- No jobseek-tagged activity this week — tracker idle.")
     lines.append("")
