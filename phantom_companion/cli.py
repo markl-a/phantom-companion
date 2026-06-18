@@ -15,7 +15,12 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from . import __version__
-from .reporter import write_daily_report, write_trend_report, write_weekly_report
+from .reporter import (
+    write_anomaly_alerts,
+    write_daily_report,
+    write_trend_report,
+    write_weekly_report,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -50,6 +55,16 @@ def _build_parser() -> argparse.ArgumentParser:
     trends.add_argument("--end", default=None, help="Last day of the window (ISO).")
     trends.add_argument("--out", type=Path, default=None, help="Output directory.")
 
+    anomaly = sub.add_parser("anomaly-alerts", help="Write a 30-day anomaly alert summary.")
+    anomaly.add_argument(
+        "--metric",
+        choices=("attention", "llm_cost", "sleep_hr", "hrv_ms", "resting_hr"),
+        default="attention",
+        help="Metric to inspect (default: attention).",
+    )
+    anomaly.add_argument("--end", default=None, help="Last day of the window (ISO).")
+    anomaly.add_argument("--out", type=Path, default=None, help="Output directory.")
+
     checkin = sub.add_parser(
         "checkin", help="Record one nightly subjective check-in line (local only)."
     )
@@ -81,6 +96,13 @@ def main(argv: list[str] | None = None) -> int:
                 period=args.period, end_day=args.end, out_root=args.out,
                 mesh_root=args.mesh_root,
             )
+        elif args.cmd == "anomaly-alerts":
+            from .schema import aggregate_window
+
+            end = date.fromisoformat(args.end) if args.end else date.today()
+            days = [(end - timedelta(days=i)).isoformat() for i in range(29, -1, -1)]
+            window = aggregate_window(days, mesh_root=args.mesh_root)
+            path = write_anomaly_alerts(window, metric=args.metric, out_root=args.out)
         elif args.cmd == "checkin":
             path = _record_checkin(args.line, out_root=args.out)
         elif args.cmd == "ingest-output":
