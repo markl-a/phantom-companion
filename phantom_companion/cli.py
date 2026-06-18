@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 from . import __version__
@@ -57,6 +58,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="e.g. '2026-05-22 gut=4 mood=3 sleep=7.2' or '2026-05-22, 4, 3, 7.2'.",
     )
     checkin.add_argument("--out", type=Path, default=None, help="Output directory.")
+
+    ingest = sub.add_parser(
+        "ingest-output", help="Collect git activity into developer-output samples."
+    )
+    ingest.add_argument("--repo", type=Path, default=Path.cwd(), help="Git repo to inspect.")
+    ingest.add_argument("--day", default=None, help="ISO YYYY-MM-DD day to ingest.")
+    ingest.add_argument("--since", default=None, help="ISO YYYY-MM-DD inclusive window start.")
     return parser
 
 
@@ -75,6 +83,19 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.cmd == "checkin":
             path = _record_checkin(args.line, out_root=args.out)
+        elif args.cmd == "ingest-output":
+            from .output_ingest import ingest_output
+
+            mesh_root = args.mesh_root if args.mesh_root else Path.home() / ".phantom-mesh"
+            paths = ingest_output(
+                repo=args.repo,
+                mesh_root=mesh_root,
+                days=_ingest_days(args.since, args.day),
+            )
+            print(f"{len(paths)} output files written")
+            for written in paths:
+                print(str(written))
+            return 0
         else:  # pragma: no cover — argparse rejects unknown subcommands
             parser.error(f"unknown command: {args.cmd}")
             return 2
@@ -86,6 +107,19 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(str(path))
     return 0
+
+
+def _ingest_days(since: str | None, day: str | None) -> list[str] | None:
+    if since:
+        start = date.fromisoformat(since)
+        end = date.fromisoformat(day) if day else date.today()
+        if end < start:
+            return []
+        n_days = (end - start).days + 1
+        return [(start + timedelta(days=i)).isoformat() for i in range(n_days)]
+    if day:
+        return [day]
+    return None
 
 
 def _record_checkin(line: str, out_root: Path | None = None) -> Path:
