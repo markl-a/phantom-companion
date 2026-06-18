@@ -27,7 +27,10 @@ from .insight_modules import (
     analyze_learning_roi,
     analyze_llm_usage,
 )
-from .insight_modules.health_productivity_correlation import correlate_health_output
+from .insight_modules.health_productivity_correlation import (
+    correlate_health_output,
+    correlate_subjective_output,
+)
 from .notify import deliver, LocalSink, Notification, NotifyConfig
 from .schema import AggregateWindow, aggregate_window
 
@@ -634,10 +637,21 @@ def write_trend_report(
         if d.health is not None and d.output is not None
     ]
     health_correlation = correlate_health_output(paired)
+    # P3-M2 keystone — the cross-domain (subjective × objective) correlation:
+    # pair each day's nightly check-in mood with that day's commit output,
+    # dropping days missing either stream, then run the SAME gated Pearson /
+    # Spearman the health×output section uses (never reinvented).
+    paired_subjective = [
+        {"day": d.day, "mood": checkins_by_day[d.day].mood, "commits": d.output.commits}
+        for d in window.days
+        if d.output is not None and d.day in checkins_by_day
+    ]
+    subjective_correlation = correlate_subjective_output(paired_subjective)
     text = render_trend_report(
         build_trends_from_window(window, checkins_by_day),
         period=period,
         health_correlation=health_correlation,
+        subjective_correlation=subjective_correlation,
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end.isoformat()}-{period}-trends.md"
