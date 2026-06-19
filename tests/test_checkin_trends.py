@@ -9,7 +9,6 @@ density gate, and strictly shame-free (a trend is a description, never a verdict
 from __future__ import annotations
 
 import random
-from pathlib import Path
 
 import pytest
 
@@ -21,7 +20,6 @@ from phantom_companion.checkin import (
     parse_checkin_line,
 )
 from phantom_companion.trends import (
-    TrendResult,
     trend_over,
     render_trend_report,
 )

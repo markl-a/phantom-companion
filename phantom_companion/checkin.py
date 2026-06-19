@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 _DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
@@ -96,7 +97,6 @@ def read_checkins(path: str | Path) -> dict[str, "SubjectiveCheckin"]:
     Blank lines and malformed JSON lines are skipped (best-effort, never raises).
     """
     import json
-    from pathlib import Path
 
     p = Path(path)
     if p.is_dir():

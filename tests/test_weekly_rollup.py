@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from phantom_companion.fixtures import build_mesh_fixture, fixture_days
 from phantom_companion.schema import aggregate_window
 from phantom_companion.cache import WindowCache

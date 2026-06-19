@@ -11,8 +11,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-import pytest
-
 from phantom_companion.thresholds import MIN_SAMPLES, has_min_samples
 
 

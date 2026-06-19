@@ -1,7 +1,7 @@
 # phantom-companion — 唯一主文件
 
 > 本檔為 phantom-companion 唯一主文件;舊版見 `docs/_archive/`。
-> 對應狀態:`master` @ `0c2c1a9` — Tier 1–3 引擎落地(Python / Apache-2.0)、131 passing tests、CLI 子指令 `daily-report` / `weekly-report` / `trends` / `checkin` / `ingest-output` / `ingest-health` / `anomaly-alerts`。每個「已出貨」項都對應 `master` 上的真實 commit。
+> 對應狀態:目前工作樹 — Tier 1–3 引擎落地(Python / Apache-2.0)、131 passing tests、CLI 子指令 `daily-report` / `weekly-report` / `trends` / `checkin` / `ingest-output` / `ingest-health` / `anomaly-alerts`。每個「已出貨」項都對應 `master` 上的真實 commit。
 
 ## 目錄
 - [這是什麼(一句話 + 為誰)](#這是什麼一句話--為誰)

@@ -163,8 +163,6 @@ def test_detect_metric_anomalies_from_window(tmp_path: Path) -> None:
     from phantom_companion.fixtures import build_mesh_fixture, fixture_days
     from phantom_companion.schema import (
         aggregate_window,
-        HealthSample,
-        DayAggregate,
     )
 
     root = tmp_path / "m"
