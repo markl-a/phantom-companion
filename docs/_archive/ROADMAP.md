@@ -1,3 +1,5 @@
+> ARCHIVED 2026-06-19 — 內容已併入 docs/phantom-companion.md;此為歷史版本。
+
 # Roadmap — phantom-companion
 
 _Last updated 2026-06-19._

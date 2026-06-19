@@ -1,3 +1,5 @@
+> ARCHIVED 2026-06-19 — 內容已併入 docs/phantom-companion.md;此為歷史版本。
+
 # ⑦ phantom-companion
 
 > **行為觀察 + LLM insight + 主動優化建議,跑在 phantom-mesh 上**

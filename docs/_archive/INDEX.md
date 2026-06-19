@@ -1,3 +1,5 @@
+> ARCHIVED 2026-06-19 — 內容已併入 docs/phantom-companion.md;此為歷史版本。
+
 # Docs index — phantom-companion
 
 The single navigation entry for every doc in this repo. Start here, then follow the link for
