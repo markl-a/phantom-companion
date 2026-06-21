@@ -280,14 +280,14 @@ graph TD
 
 ### 📅 規劃 / 分期表
 
-> 機台:z13 / M5 / M1 / acer / ayaneo / Android。寫碼=codex 或 claude;審查 ≥2 個不同 AI(distinct)+ governor + 雙閘 → 手機核准。
+> 機台:orchestrator node (Win) / 數個 Windows node / 數個 Mac node / 一個 Android worker。寫碼=codex 或 claude;審查 ≥2 個不同 AI(distinct)+ governor + 雙閘 → 手機核准。
 
 | 階段 | 目標 | 具體項 | 在哪台機 | 哪 AI(寫/審) | 風險前置 |
 |---|---|---|---|---|---|
-| **P1 📅 讓資料累積(零碼)** | 把「30+ 天」前提變真資料 | 每日跑 mesh 累積事件;真資料(非 fixture)上跑 demo;確認 ③/⑥ 至少一個有寫入 | 任意常駐機(z13/ayaneo serve) | **無需寫碼**,操作者執行 | 最低風險;唯一風險=忘記跑 → 永遠 stub |
-| **P2 📅 wrap ActivityWatch(最高槓桿)** | attention 模組 stub→真實 | 讀 AW local export(SQLite/REST);映射成 normalized records;餵進 `attention_switches`(不自建 watcher) | z13 | 寫=codex(單檔);審=opencode+agy | **別重造 AW**(17.9k★ 多年工程);只 wrap。AW 本地優先,繼承同一 gate |
-| **P3 📅 coach 路由 + push fan-out** | LLM insight 保 local + 成本路由 | `_invoke_coach` 改走 MCP broker;Gemini Flash 壓縮 / Claude 收尾;Telegram→email(過 shame-free) | M1 / M5 | 寫=codex/claude;審 ≥2 distinct;governor 控外送 | 外送=新攻擊面 → relay 一律 opt-in/consent/去 PII;每行仍過 lint |
-| **P4 🔭 裝置 ingest(條件式)** | 真健康指標翻 gate | OpenScale/OpenTracks export → ④ ingest;翻「Waiting on: health」為真值 | acer / ayaneo + Android 端裝置 | 寫=codex;審 ≥2 distinct | **僅在真有裝置每日使用才做**;否則=純 over-build,跳過 |
+| **P1 📅 讓資料累積(零碼)** | 把「30+ 天」前提變真資料 | 每日跑 mesh 累積事件;真資料(非 fixture)上跑 demo;確認 ③/⑥ 至少一個有寫入 | 任意常駐機(orchestrator node / 一個 Windows node 跑 serve) | **無需寫碼**,操作者執行 | 最低風險;唯一風險=忘記跑 → 永遠 stub |
+| **P2 📅 wrap ActivityWatch(最高槓桿)** | attention 模組 stub→真實 | 讀 AW local export(SQLite/REST);映射成 normalized records;餵進 `attention_switches`(不自建 watcher) | orchestrator node (Win) | 寫=codex(單檔);審=opencode+agy | **別重造 AW**(17.9k★ 多年工程);只 wrap。AW 本地優先,繼承同一 gate |
+| **P3 📅 coach 路由 + push fan-out** | LLM insight 保 local + 成本路由 | `_invoke_coach` 改走 MCP broker;Gemini Flash 壓縮 / Claude 收尾;Telegram→email(過 shame-free) | 一個 Mac node | 寫=codex/claude;審 ≥2 distinct;governor 控外送 | 外送=新攻擊面 → relay 一律 opt-in/consent/去 PII;每行仍過 lint |
+| **P4 🔭 裝置 ingest(條件式)** | 真健康指標翻 gate | OpenScale/OpenTracks export → ④ ingest;翻「Waiting on: health」為真值 | 數個 Windows node + Android 端裝置 | 寫=codex;審 ≥2 distinct | **僅在真有裝置每日使用才做**;否則=純 over-build,跳過 |
 | **P5 🔭 遠期(操作者決策後)** | 擴張面向 | 財務(Firefly III API,**不 vendor**);家人 dashboard;② 個人小模型 fine-tune;多模態 demo(食物照片 / focus audio) | 待定 | 待定;需操作者決策 + ≥60–90 天資料 | 太早做=fake-green;AGPL/重量級只走 API |
 
 > 圖例:✅ 已出貨 ｜ 🚧 進行中 ｜ 📅 之後 ｜ 🔭 願景 ｜ 🔴 高風險 ｜ ⚠️ over-build 警戒
