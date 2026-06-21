@@ -56,3 +56,11 @@ agents.toml
 *.pem
 id_rsa
 credentials.json
+
+# loop scratch (autonomous dev-loop artifacts — may carry host/IP leaks; never push to public repo)
+.ai-shared/
+overnight/
+SESSION_RESUME.md
+cache/
+TASK-*.md
+configs/agents.*.toml
