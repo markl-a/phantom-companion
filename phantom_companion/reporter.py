@@ -306,6 +306,34 @@ def render_weekly_report(aggs: Iterable[DailyAggregate]) -> str:
     return text
 
 
+# --- goal tracking section ---
+_GOAL_MARKERS = {
+    "on_track": "✅ on track",
+    "drifting": "➰ drifting",
+    "violated": "🌱 worth a nudge",
+    "insufficient_data": "… still gathering data",
+}
+
+
+def render_goal_section(statuses) -> list:
+    """Render a shame-free '🎯 Goal tracking' section from a GoalStatus list.
+
+    Empty list -> no section (returns []). A missed goal reads as 'worth a
+    nudge', never as failure."""
+    if not statuses:
+        return []
+    lines = ["## 🎯 Goal tracking", ""]
+    for st in statuses:
+        label = st.goal.label or st.goal.metric
+        marker = _GOAL_MARKERS.get(st.status, st.status)
+        if st.status == "insufficient_data":
+            lines.append(f"- **{label}** — {marker}.")
+        else:
+            lines.append(f"- **{label}** — {marker} ({st.actual} vs target {st.target}).")
+    lines.append("")
+    return lines
+
+
 # ---------------------------------------------------------------------------
 # P2-M1 — weekly cross-satellite pattern rollups (typed AggregateWindow)
 # ---------------------------------------------------------------------------
@@ -548,6 +576,18 @@ def write_daily_report(
         pass
     agg = aggregate_day(requested_day, mesh_root=mesh_root)
     text = render_daily_report(agg)
+    # goal tracking (deterministic; no-op when no goals declared)
+    from .goals import load_goals
+    from .goal_eval import evaluate_goals
+    from .checkin import read_checkins
+    _goal_out = DEFAULT_REPORT_ROOT if out_root is None else Path(out_root)
+    _goals = load_goals(_goal_out / "goals.json")
+    if _goals:
+        _checkins = read_checkins(_goal_out)
+        _window = aggregate_window([agg.day], mesh_root=mesh_root)
+        _section = render_goal_section(evaluate_goals(_window, _checkins, _goals))
+        if _section:
+            text = text.rstrip("\n") + "\n\n" + "\n".join(_section).rstrip("\n") + "\n"
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{agg.day}-report.md"
@@ -582,6 +622,7 @@ def write_weekly_report(
     """
     end = date.fromisoformat(end_day) if end_day else date.today()
     days = [(end - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
+    window = None
     if rollup:
         # aggregate_window → aggregate_day loads the ④ health + developer-output
         # exports off disk per day, so the health×output correlation runs on real
@@ -591,6 +632,19 @@ def write_weekly_report(
     else:
         aggs = list(aggregate_range(days, mesh_root=mesh_root).values())
         text = render_weekly_report(aggs)
+    # goal tracking (deterministic; no-op when no goals declared)
+    from .goals import load_goals
+    from .goal_eval import evaluate_goals
+    from .checkin import read_checkins
+    _goal_out = DEFAULT_REPORT_ROOT if out_root is None else Path(out_root)
+    _goals = load_goals(_goal_out / "goals.json")
+    if _goals:
+        _checkins = read_checkins(_goal_out)
+        if window is None:
+            window = aggregate_window(days, mesh_root=mesh_root)
+        _section = render_goal_section(evaluate_goals(window, _checkins, _goals))
+        if _section:
+            text = text.rstrip("\n") + "\n\n" + "\n".join(_section).rstrip("\n") + "\n"
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end.isoformat()}-weekly-report.md"
