@@ -97,12 +97,12 @@ Goal = {
 4. **過早蓋收費基建**(over-build) → 本 phase **只建免費引擎**;A/B/C 金流/託管待訊號。
 5. **目標 metric 對映漂移**(指標欄位改名)→ metric 白名單集中一處 + 測試對著真實 schema 欄位斷言。
 
-## 8. 待確認 / owner-gated
+## 8. owner 定案(2026-06-23,採建議預設)
 
-- `drifting` 邊際門檻(建議 at_least 達成率 < 80%)。
-- 違反提醒的推播頻率/節流(建議:每目標每窗最多一則,避免轟炸)。
-- `mood` 要不要納入可設目標(主觀;建議納入但標「主觀指標」)。
-- 預設目標窗對映(建議:commits/sleep/activity=日、jobs=週、llm_cost=月)。
+- **`drifting` 邊際 = at_least 達成率 < 80%**(at_most 則 actual > target × 0.8 且未超標時為 drifting)。
+- **違反提醒節流 = 每目標每窗最多一則**(同窗已提醒過該目標 → 不再推,避免轟炸)。
+- **`mood` 納入可設目標**,但在報告/CLI 標「主觀指標」。
+- **預設目標窗:** `commits`/`sleep_hr`/`activity_min` = 1 日;`jobs_applied` = 7 日;`llm_cost` = 30 日;`mood` = 7 日。
 
 ## 9. Phase 之後(非本 spec)
 
