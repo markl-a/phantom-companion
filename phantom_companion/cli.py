@@ -90,6 +90,26 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Path to the export JSON (one day object or a list of day rows).",
     )
+
+    goal = sub.add_parser("goal", help="Manage accountability goals.")
+    goal_sub = goal.add_subparsers(dest="goal_cmd", required=True)
+    g_set = goal_sub.add_parser("set", help="Declare or update a goal.")
+    g_set.add_argument("metric", choices=("commits", "activity_min", "sleep_hr",
+                                          "mood", "jobs_applied", "llm_calls"))
+    g_set.add_argument("direction", choices=("at-least", "at-most"))
+    g_set.add_argument("target", type=float)
+    g_set.add_argument("--label", default="")
+    g_set.add_argument("--window", type=int, default=None, help="Override default window (days).")
+    g_set.add_argument("--out", type=Path, default=None)
+    g_list = goal_sub.add_parser("list", help="List declared goals.")
+    g_list.add_argument("--out", type=Path, default=None)
+    g_rm = goal_sub.add_parser("rm", help="Remove a goal by id.")
+    g_rm.add_argument("goal_id")
+    g_rm.add_argument("--out", type=Path, default=None)
+
+    goals_cmd = sub.add_parser("goals", help="Show current goal status.")
+    goals_cmd.add_argument("--end", default=None, help="Last day of the eval window (ISO).")
+    goals_cmd.add_argument("--out", type=Path, default=None)
     return parser
 
 
@@ -136,6 +156,41 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{len(paths)} health files written")
             for written in paths:
                 print(str(written))
+            return 0
+        elif args.cmd == "goal":
+            from .goals import add_goal, load_goals, remove_goal
+            from .reporter import DEFAULT_REPORT_ROOT
+            out_dir = Path(args.out) if args.out else DEFAULT_REPORT_ROOT
+            gp = out_dir / "goals.json"
+            if args.goal_cmd == "set":
+                g = add_goal(gp, metric=args.metric,
+                             direction=args.direction.replace("-", "_"),
+                             target=args.target, label=args.label, window_days=args.window)
+                print(f"goal set: {g.id} ({g.label})")
+            elif args.goal_cmd == "list":
+                for g in load_goals(gp):
+                    print(f"{g.id}\t{g.label}\t{g.metric} {g.direction} {g.target} / {g.window_days}d")
+            elif args.goal_cmd == "rm":
+                print("removed" if remove_goal(gp, args.goal_id) else "no such goal")
+            return 0
+        elif args.cmd == "goals":
+            from .goals import load_goals
+            from .goal_eval import evaluate_goals
+            from .checkin import read_checkins
+            from .schema import aggregate_window
+            from .reporter import DEFAULT_REPORT_ROOT
+            out_dir = Path(args.out) if args.out else DEFAULT_REPORT_ROOT
+            goals = load_goals(out_dir / "goals.json")
+            if not goals:
+                print("no goals declared — use `companion goal set ...`")
+                return 0
+            span = max(g.window_days for g in goals)
+            end = date.fromisoformat(args.end) if args.end else date.today()
+            days = [(end - timedelta(days=i)).isoformat() for i in range(span - 1, -1, -1)]
+            window = aggregate_window(days, mesh_root=args.mesh_root)
+            checkins = read_checkins(out_dir)
+            for st in evaluate_goals(window, checkins, goals):
+                print(f"{st.goal.id}\t{st.status}\t{st.actual}/{st.target}")
             return 0
         else:  # pragma: no cover — argparse rejects unknown subcommands
             parser.error(f"unknown command: {args.cmd}")
