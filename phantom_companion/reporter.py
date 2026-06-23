@@ -327,9 +327,19 @@ def render_goal_section(statuses) -> list:
         label = st.goal.label or st.goal.metric
         marker = _GOAL_MARKERS.get(st.status, st.status)
         if st.status == "insufficient_data":
-            lines.append(f"- **{label}** — {marker}.")
+            line = f"- **{label}** — {marker}."
         else:
-            lines.append(f"- **{label}** — {marker} ({st.actual} vs target {st.target}).")
+            line = f"- **{label}** — {marker} ({st.actual} vs target {st.target})."
+        # Spec §2 invariant: the raw user label is embedded, so lint each line.
+        # On failure, fall back to the goal's metric (a fixed safe vocabulary,
+        # never user text) so no shaming label reaches the rendered report.
+        if not shame_free_check(line)[0]:
+            metric = st.goal.metric
+            if st.status == "insufficient_data":
+                line = f"- **{metric}** — {marker}."
+            else:
+                line = f"- **{metric}** — {marker} ({st.actual} vs target {st.target})."
+        lines.append(line)
     lines.append("")
     return lines
 

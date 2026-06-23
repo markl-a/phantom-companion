@@ -38,3 +38,13 @@ def test_emit_writes_local_outbox(tmp_path):
                                outbox=outbox, state_path=tmp_path / "s.jsonl")
     assert emitted == 1
     assert list(outbox.glob("goal_nudge-*.json"))
+
+
+def test_nudge_shame_free_with_adversarial_label():
+    from phantom_companion.reporter import shame_free_check
+    g = Goal(id="x", label="you failed to move", metric="activity_min",
+             direction="at_least", target=30, window_days=1)
+    st = GoalStatus(g, "violated", actual=5, target=30, observed_days=1)
+    n = build_goal_nudges([st], window_key="2026-06-01")[0]
+    assert shame_free_check(n.body)[0], f"body: {n.body!r}"
+    assert shame_free_check(n.title)[0], f"title: {n.title!r}"

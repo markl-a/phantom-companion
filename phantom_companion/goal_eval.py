@@ -32,8 +32,8 @@ def has_goal_density(observed: int, window_days: int) -> bool:
     return observed >= max(1, math.ceil(window_days / 2))
 
 
-def _per_day(window: AggregateWindow, metric: str, checkins_by_day: dict):
-    for d in window.days:
+def _per_day(days, metric: str, checkins_by_day: dict):
+    for d in days:
         if metric == "commits":
             if d.output is not None:
                 yield d.output.commits
@@ -67,7 +67,12 @@ def evaluate_goals(window: AggregateWindow, checkins_by_day: dict,
                    goals: list[Goal]) -> list[GoalStatus]:
     out: list[GoalStatus] = []
     for g in goals:
-        values = list(_per_day(window, g.metric, checkins_by_day))
+        # Clip each goal to only the last `g.window_days` of the shared window
+        # BEFORE measuring. Multi-goal callers pass ONE window sized to
+        # max(window_days); without this a 1-day goal would be judged over the
+        # whole span. No-op when the window already equals the goal's window.
+        clipped = window.days[-g.window_days:]
+        values = list(_per_day(clipped, g.metric, checkins_by_day))
         observed = len(values)
         if not has_goal_density(observed, g.window_days):
             out.append(GoalStatus(g, "insufficient_data", 0.0, g.target, observed))

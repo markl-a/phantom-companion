@@ -13,6 +13,10 @@ from .notify import LocalSink, Notification, deliver
 from .reporter import shame_free_check
 
 
+_SAFE_TITLE = "Goal nudge"
+_SAFE_BODY = "Worth a gentle nudge on one of your goals today."
+
+
 def _safe_body(st: GoalStatus) -> str:
     label = st.goal.label or st.goal.metric
     body = (f"Heads-up on “{label}”: you're at {st.actual} vs a target of "
@@ -20,7 +24,8 @@ def _safe_body(st: GoalStatus) -> str:
     ok, _ = shame_free_check(body)
     if ok:
         return body
-    return f"Worth a gentle nudge on “{label}” today."
+    # Label-free fallback: a user-supplied label can itself trip the lint.
+    return _SAFE_BODY
 
 
 def build_goal_nudges(statuses: list[GoalStatus], window_key: str) -> list[Notification]:
@@ -28,10 +33,18 @@ def build_goal_nudges(statuses: list[GoalStatus], window_key: str) -> list[Notif
     for st in statuses:
         if st.status != "violated":
             continue
+        title = f"Goal nudge: {st.goal.label or st.goal.metric}"
+        body = _safe_body(st)
+        # Spec §2 invariant is unconditional: the raw user label is embedded in
+        # both title and body, so lint BOTH and fall back to label-free safe
+        # text if EITHER trips. details stays structured (local-only, not prose).
+        if not (shame_free_check(title)[0] and shame_free_check(body)[0]):
+            title = _SAFE_TITLE
+            body = _SAFE_BODY
         nudges.append(Notification(
             kind="goal_nudge",
-            title=f"Goal nudge: {st.goal.label or st.goal.metric}",
-            body=_safe_body(st),
+            title=title,
+            body=body,
             details={"goal_id": st.goal.id, "metric": st.goal.metric,
                      "actual": st.actual, "target": st.target, "window_key": window_key},
         ))

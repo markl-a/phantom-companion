@@ -24,3 +24,12 @@ def test_section_is_shame_free():
 
 def test_empty_goals_returns_no_section():
     assert render_goal_section([]) == []
+
+
+def test_goal_section_shame_free_with_adversarial_label():
+    g = Goal(id="x", label="you failed to move", metric="commits", direction="at_least",
+             target=1, window_days=1)
+    st = GoalStatus(g, "violated", actual=0, target=1, observed_days=1)
+    lines = render_goal_section([st])
+    ok, _ = shame_free_check("\n".join(lines))
+    assert ok

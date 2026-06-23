@@ -72,3 +72,18 @@ def test_mood_uses_checkins_and_insufficient_data():
              target=4, window_days=7)
     [st] = evaluate_goals(win, checkins, [g])
     assert st.status == "insufficient_data"
+
+
+def test_each_goal_clipped_to_its_own_window():
+    # 30-day shared window; a 1-day commits goal must see ONLY the last day.
+    days = [_day(f"2026-06-{i:02d}", commits=10, applied=1) for i in range(1, 31)]
+    days[-1] = _day("2026-06-30", commits=0, applied=0)  # today: 0 commits, 0 applied
+    win = AggregateWindow(days=days)
+    g_today = Goal(id="c", label="", metric="commits", direction="at_least",
+                   target=1, window_days=1)
+    g_week = Goal(id="j", label="", metric="jobs_applied", direction="at_least",
+                  target=3, window_days=7)
+    s_today, s_week = evaluate_goals(win, {}, [g_today, g_week])
+    assert s_today.observed_days == 1 and s_today.actual == 0.0   # only today
+    assert s_today.status == "violated"
+    assert s_week.observed_days == 7 and s_week.actual == 6.0     # last 7 days: 6 applied, today 0
