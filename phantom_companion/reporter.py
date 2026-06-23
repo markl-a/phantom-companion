@@ -584,10 +584,28 @@ def write_daily_report(
     _goals = load_goals(_goal_out / "goals.json")
     if _goals:
         _checkins = read_checkins(_goal_out)
-        _window = aggregate_window([agg.day], mesh_root=mesh_root)
-        _section = render_goal_section(evaluate_goals(_window, _checkins, _goals))
+        # Span the window over the widest declared goal window (ending on the
+        # report day) so multi-day goals (e.g. jobs_applied over 7d) can clear
+        # the density gate and be judged here — a 1-day window would always read
+        # `insufficient_data` for them.
+        _end = date.fromisoformat(agg.day)
+        _span = max(g.window_days for g in _goals)
+        _days = [(_end - timedelta(days=i)).isoformat() for i in range(_span - 1, -1, -1)]
+        _window = aggregate_window(_days, mesh_root=mesh_root)
+        _statuses = evaluate_goals(_window, _checkins, _goals)
+        _section = render_goal_section(_statuses)
         if _section:
             text = text.rstrip("\n") + "\n\n" + "\n".join(_section).rstrip("\n") + "\n"
+        # Proactive path (spec §4: violated -> notify.deliver()). Reuse the SAME
+        # evaluated statuses to fire one throttled, shame-free local nudge per
+        # violated goal per report day. Local-only; no relay.
+        from .goal_nudge import emit_goal_nudges
+        emit_goal_nudges(
+            _statuses,
+            window_key=agg.day,
+            outbox=_goal_out / "outbox",
+            state_path=_goal_out / "goal_nudges.jsonl",
+        )
     out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{agg.day}-report.md"
