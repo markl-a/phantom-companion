@@ -211,7 +211,7 @@ def _next_step_from_insights(insights: list[dict[str, Any]]) -> str:
     )
 
 
-def render_daily_report(agg: DailyAggregate) -> str:
+def render_daily_report(agg: DailyAggregate, *, coach_enabled: bool = True) -> str:
     """Build the daily markdown report. Always shame-free."""
     insights = _run_insights(agg)
     ready = sum(1 for i in insights if i.get("baseline_ready"))
@@ -245,7 +245,7 @@ def render_daily_report(agg: DailyAggregate) -> str:
     # first-class section (the deterministic insights above stay as structured
     # context). The coach body starts with ``# Daily review —``; we demote that
     # H1 to an H2 so the report keeps a single top-level heading.
-    coach_text = _invoke_coach(agg.day)
+    coach_text = _invoke_coach(agg.day) if coach_enabled else None
     next_step: str | None = None
     if coach_text:
         ok, _ = shame_free_check(coach_text)
