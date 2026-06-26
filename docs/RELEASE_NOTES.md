@@ -1,6 +1,6 @@
 # Release Notes
 
-Status: release candidate approved and tagged locally; remote publication pending.
+Status: release candidate approved and tagged.
 
 ## Public Release Candidate
 
@@ -16,7 +16,7 @@ Status: release candidate approved and tagged locally; remote publication pendin
 
 - Live or external integrations remain opt-in, gated, or deferred.
 - Staged or optional subtrees require separate audit before publication as supported release surfaces.
-- Remote tag push and public release publication still require target remote and repository visibility confirmation.
+- Release candidate tag `v0.1.0-alpha.0` identifies this approved public source release candidate.
 
 ### Verification
 

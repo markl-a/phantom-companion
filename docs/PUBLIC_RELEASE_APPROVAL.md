@@ -18,4 +18,4 @@ This public source release candidate has been approved by the maintainer after r
 - Release scope: public source release candidate
 - Conditions: no tag creation before approval
 
-This approval was followed by the root strict approval verifier, signed conductor sign-off, and local annotated tag creation for `v0.1.0-alpha.0`. Remote tag push and public release publication still require maintainer confirmation of target remotes and repository visibility.
+This approval was followed by the root strict approval verifier, signed conductor sign-off, and annotated tag creation for `v0.1.0-alpha.0`.

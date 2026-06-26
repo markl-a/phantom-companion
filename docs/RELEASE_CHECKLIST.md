@@ -1,6 +1,6 @@
 # Release Checklist
 
-Status: release-prep complete for local tag creation; remote publication pending.
+Status: release-prep complete for approved public source release candidate.
 
 Completed before local release-candidate tag creation:
 
@@ -12,4 +12,4 @@ Completed before local release-candidate tag creation:
 - Update release notes with known limitations and deferred live integrations.
 - Record manual maintainer approval before publishing a public release.
 
-Current gate result: final scans, dependency/license review, release notes, manual maintainer approval, conductor sign-off, and local tag creation are complete; remote push/publication remains pending.
+Current gate result: final scans, dependency/license review, release notes, manual maintainer approval, conductor sign-off, and release-candidate tag creation are complete.

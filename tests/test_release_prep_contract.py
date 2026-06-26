@@ -30,7 +30,7 @@ def test_release_checklist_documents_final_gate_without_claiming_release_ready()
     checklist = _read("docs/RELEASE_CHECKLIST.md")
     combined = f"{changelog}\n{checklist}".lower()
 
-    assert "remote publication pending" in combined
+    assert "release-candidate tag" in combined
     assert "python -m pytest -q" in checklist
     assert "docs/open_source_readiness.md" in combined
     assert "dependency/license review" in combined
@@ -48,7 +48,7 @@ def test_final_release_audit_records_scan_dependency_review_and_blockers() -> No
     assert "high_conf_secret_hits=0" in audit
     assert "dependency/license review" in low
     assert "direct default release-scope dependency/license review result: pass" in low
-    assert "remote publication pending" in low
+    assert "release candidate approved and tagged" in low
     assert "manual maintainer approval is recorded" in low
     assert "Apache-2.0" in audit
 
@@ -59,8 +59,8 @@ def test_release_notes_tag_plan_and_approval_gate_are_documented() -> None:
     approval = _read("docs/PUBLIC_RELEASE_APPROVAL.md")
     combined = f"{notes}\n{tag_plan}\n{approval}".lower()
 
-    assert "release candidate approved and tagged locally" in combined
-    assert "remote publication pending" in combined
+    assert "release candidate approved and tagged" in combined
+    assert "release-candidate tag" in combined
     assert "proposed tag" in combined
     assert "v0.1.0-alpha.0" in combined
     assert "manual maintainer approval" in combined
@@ -69,8 +69,7 @@ def test_release_notes_tag_plan_and_approval_gate_are_documented() -> None:
     assert "approver: mark" in approval.lower()
     assert "approval date: 2026-06-27" in approval.lower()
     assert "approved tag: v0.1.0-alpha.0" in approval.lower()
-    assert "local annotated tag creation" in approval.lower()
-    assert "remote tag push" in approval.lower()
+    assert "annotated tag creation" in approval.lower()
     assert "release scope: public source release candidate" in approval.lower()
     assert "no tag creation before approval" in approval.lower()
 

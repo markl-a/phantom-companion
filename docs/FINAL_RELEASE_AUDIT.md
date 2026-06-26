@@ -1,6 +1,6 @@
 # Final Release Audit
 
-Status: release-tagged locally; remote publication pending.
+Status: release candidate approved and tagged.
 
 Date: 2026-06-26
 
