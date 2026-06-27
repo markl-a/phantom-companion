@@ -188,3 +188,24 @@ Evidence:
 - `python -m pytest -q`: 180 passed.
 
 Remaining P4 work: none for the approved release-candidate tag.
+
+## P4 Release-Prep Slice 5
+
+Status: public release gate hardened and verified for package metadata, CI installability, wheel build, ruff, public demo paths, and current release evidence.
+
+Evidence:
+- `pyproject.toml` includes public package classifiers, GitHub project URLs, and a `dev` extra for release verification tooling.
+- `.github/workflows/ci.yml` installs `.[dev]`, builds a wheel with `python -m pip wheel . --no-deps -w dist-smoke`, runs ruff, runs the full pytest suite, runs deterministic `demo-loop`, and runs the release-prep gate.
+- `CHANGELOG.md` now records `0.1.0-alpha.0 - 2026-06-27` as the approved release candidate instead of the stale not-release-ready status.
+- `docs/FINAL_RELEASE_AUDIT.md` records current install, wheel, CLI help, demo-loop, privacy-export, review-scenario, ruff, pytest, and high-confidence secret scan evidence.
+- `python -m pytest tests\test_packaging.py tests\test_release_prep_contract.py -q`: 8 passed.
+- `python -m pip install -e . --dry-run --no-deps`: editable metadata OK; would install `phantom-companion-0.1.0a0`.
+- `python -m pip wheel . --no-deps -w <temp>`: built `phantom_companion-0.1.0a0-py3-none-any.whl`.
+- `python -m phantom_companion.cli --help`: help OK.
+- `python -m phantom_companion.cli demo-loop --out <bundle> --end 2026-05-30 --days 30 --seed 42`: wrote synthetic demo manifest with `private_data_included=false`, `external_network=false`, and `llm_coach=disabled`.
+- `python -m phantom_companion.cli privacy-export --source <bundle> --out <export>` and `python -m phantom_companion.cli review-scenario --source <bundle> --out <scenario>` wrote manifests with `private_data_included=false`, `raw_payloads_included=false`, `external_network=false`, and `llm_coach=disabled`.
+- `python -m ruff check .`: all checks passed.
+- High-confidence secret scan: `high_conf_secret_hits=0`.
+- `python -m pytest -q`: 183 passed.
+
+Remaining P4 work: none for the current approved public source release candidate.

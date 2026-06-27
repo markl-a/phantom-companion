@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 from .aggregator import aggregate_day
 from .checkin import SubjectiveCheckin

@@ -2,7 +2,7 @@
 
 Status: release candidate approved and tagged.
 
-Date: 2026-06-26
+Date: 2026-06-27
 
 ## Scope
 
@@ -19,8 +19,22 @@ Result: `high_conf_secret_hits=0`.
 
 - Project license: Apache-2.0.
 - Default runtime dependencies: none beyond Python stdlib.
+- Dev dependencies: `pytest>=7` and `ruff>=0.6`, used for local/CI verification only.
 
 Direct default release-scope dependency/license review result: pass.
+
+## Current Verification
+
+- `python -m pytest tests\test_packaging.py tests\test_release_prep_contract.py -q`: 8 passed.
+- `python -m pip install -e . --dry-run --no-deps`: editable metadata OK; would install `phantom-companion-0.1.0a0`.
+- `python -m pip wheel . --no-deps -w <temp>`: built `phantom_companion-0.1.0a0-py3-none-any.whl`.
+- `python -m phantom_companion.cli --help`: help OK.
+- `python -m phantom_companion.cli demo-loop --out <bundle> --end 2026-05-30 --days 30 --seed 42`: wrote synthetic demo manifest with `private_data_included=false`, `external_network=false`, and `llm_coach=disabled`.
+- `python -m phantom_companion.cli privacy-export --source <bundle> --out <export>`: wrote privacy export manifest with `private_data_included=false`, `raw_payloads_included=false`, `external_network=false`, and `llm_coach=disabled`.
+- `python -m phantom_companion.cli review-scenario --source <bundle> --out <scenario>`: wrote review scenario manifest with `private_data_included=false`, `raw_payloads_included=false`, `external_network=false`, and `llm_coach=disabled`.
+- `python -m ruff check .`: all checks passed.
+- `python -m pytest -q`: 183 passed.
+- High-confidence secret scan: `high_conf_secret_hits=0`.
 
 ## Remaining Publication Gates
 

@@ -1,6 +1,6 @@
 import pytest
 from phantom_companion.goals import (
-    Goal, METRICS, DEFAULT_WINDOWS, load_goals, save_goals, add_goal, remove_goal,
+    Goal, METRICS, DEFAULT_WINDOWS, load_goals, add_goal, remove_goal,
 )
 
 

@@ -30,6 +30,7 @@ def test_release_checklist_documents_final_gate_without_claiming_release_ready()
     checklist = _read("docs/RELEASE_CHECKLIST.md")
     combined = f"{changelog}\n{checklist}".lower()
 
+    assert "0.1.0-alpha.0 - 2026-06-27" in changelog
     assert "release-candidate tag" in combined
     assert "python -m pytest -q" in checklist
     assert "docs/open_source_readiness.md" in combined
@@ -39,6 +40,7 @@ def test_release_checklist_documents_final_gate_without_claiming_release_ready()
     assert "manual maintainer approval" in combined
     assert "contributing.md" in combined
     assert "security.md" in combined
+    assert "approved release-candidate tag: `v0.1.0-alpha.0`" in changelog.lower()
 
 
 def test_final_release_audit_records_scan_dependency_review_and_blockers() -> None:
@@ -48,6 +50,11 @@ def test_final_release_audit_records_scan_dependency_review_and_blockers() -> No
     assert "high_conf_secret_hits=0" in audit
     assert "dependency/license review" in low
     assert "direct default release-scope dependency/license review result: pass" in low
+    assert "python -m pip install -e . --dry-run --no-deps" in audit
+    assert "python -m pip wheel . --no-deps -w <temp>" in audit
+    assert "python -m ruff check ." in audit
+    assert "python -m pytest -q" in audit
+    assert "183 passed" in audit
     assert "release candidate approved and tagged" in low
     assert "manual maintainer approval is recorded" in low
     assert "Apache-2.0" in audit
@@ -77,5 +84,9 @@ def test_release_notes_tag_plan_and_approval_gate_are_documented() -> None:
 def test_ci_runs_release_prep_gate() -> None:
     workflow = _read(".github/workflows/ci.yml")
 
+    assert "python -m pip install -e .[dev]" in workflow
+    assert "python -m pip wheel . --no-deps -w dist-smoke" in workflow
+    assert "deterministic demo-loop smoke" in workflow
+    assert "python -m phantom_companion.cli demo-loop --out demo-loop-smoke --end 2026-05-30 --days 30 --seed 42" in workflow
     assert "release-prep gate" in workflow
     assert "python -m pytest tests/test_release_prep_contract.py -q" in workflow
