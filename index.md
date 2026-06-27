@@ -1,0 +1,163 @@
+# phantom-companion 索引
+
+更新日期：2026-06-27
+
+本文件是專案導覽索引，目的在於讓人類維護者與 AI agent 能快速找到每個文件、程式碼、測試、設定與範例入口。
+
+索引範圍：目前 git 追蹤的全部檔案，加上本 index.md。
+
+## 快速入口
+
+- [README.md](README.md)
+- [PHANTOM-SATELLITES-OPEN-SOURCE-FINAL-SUMMARY.md](PHANTOM-SATELLITES-OPEN-SOURCE-FINAL-SUMMARY.md)
+- [docs/OPEN_SOURCE_READINESS.md](docs/OPEN_SOURCE_READINESS.md)
+- [docs/FINAL_RELEASE_AUDIT.md](docs/FINAL_RELEASE_AUDIT.md)
+- [docs/PUBLIC_RELEASE_APPROVAL.md](docs/PUBLIC_RELEASE_APPROVAL.md)
+- [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
+- [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+- [LICENSE](LICENSE)
+- [pyproject.toml](pyproject.toml)
+- [.github/workflows/ci.yml](.github/workflows/ci.yml)
+
+## 文件索引
+
+- [CHANGELOG.md](CHANGELOG.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [docs/_archive/07-phantom-companion.md](docs/_archive/07-phantom-companion.md)
+- [docs/_archive/2026-05-22-tier1-initial-dev.md](docs/_archive/2026-05-22-tier1-initial-dev.md)
+- [docs/_archive/INDEX.md](docs/_archive/INDEX.md)
+- [docs/_archive/OSS-LANDSCAPE-AND-DIRECTION.md](docs/_archive/OSS-LANDSCAPE-AND-DIRECTION.md)
+- [docs/_archive/ROADMAP.md](docs/_archive/ROADMAP.md)
+- [docs/_archive/ROADMAP.zh-TW.md](docs/_archive/ROADMAP.zh-TW.md)
+- [docs/demo.cast](docs/demo.cast)
+- [docs/FINAL_RELEASE_AUDIT.md](docs/FINAL_RELEASE_AUDIT.md)
+- [docs/OPEN_SOURCE_READINESS.md](docs/OPEN_SOURCE_READINESS.md)
+- [docs/phantom-companion.md](docs/phantom-companion.md)
+- [docs/plans/2026-06-23-goal-aware-accountability-loop.md](docs/plans/2026-06-23-goal-aware-accountability-loop.md)
+- [docs/PRIVACY_AND_DEMO.md](docs/PRIVACY_AND_DEMO.md)
+- [docs/PRIVACY_EXPORT_BUNDLE.md](docs/PRIVACY_EXPORT_BUNDLE.md)
+- [docs/PUBLIC_RELEASE_APPROVAL.md](docs/PUBLIC_RELEASE_APPROVAL.md)
+- [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
+- [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
+- [docs/specs/2026-06-23-goal-aware-accountability-loop-design.md](docs/specs/2026-06-23-goal-aware-accountability-loop-design.md)
+- [docs/SYNTHETIC_REPORTING_LOOP.md](docs/SYNTHETIC_REPORTING_LOOP.md)
+- [docs/TAG_PLAN.md](docs/TAG_PLAN.md)
+- [docs/THIRTY_DAY_REVIEW_SCENARIO.md](docs/THIRTY_DAY_REVIEW_SCENARIO.md)
+- [LICENSE](LICENSE)
+- [PHANTOM-SATELLITES-OPEN-SOURCE-FINAL-SUMMARY.md](PHANTOM-SATELLITES-OPEN-SOURCE-FINAL-SUMMARY.md)
+- [README.md](README.md)
+- [SECURITY.md](SECURITY.md)
+
+## 完整檔案索引
+
+### 根目錄
+
+- [.gitignore](.gitignore)
+- [CHANGELOG.md](CHANGELOG.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [index.md](index.md)
+- [LICENSE](LICENSE)
+- [PHANTOM-SATELLITES-OPEN-SOURCE-FINAL-SUMMARY.md](PHANTOM-SATELLITES-OPEN-SOURCE-FINAL-SUMMARY.md)
+- [pyproject.toml](pyproject.toml)
+- [README.md](README.md)
+- [SECURITY.md](SECURITY.md)
+
+### .github
+
+- [.github/workflows/ci.yml](.github/workflows/ci.yml)
+
+### docs
+
+- [docs/_archive/07-phantom-companion.md](docs/_archive/07-phantom-companion.md)
+- [docs/_archive/2026-05-22-tier1-initial-dev.md](docs/_archive/2026-05-22-tier1-initial-dev.md)
+- [docs/_archive/INDEX.md](docs/_archive/INDEX.md)
+- [docs/_archive/OSS-LANDSCAPE-AND-DIRECTION.md](docs/_archive/OSS-LANDSCAPE-AND-DIRECTION.md)
+- [docs/_archive/ROADMAP.md](docs/_archive/ROADMAP.md)
+- [docs/_archive/ROADMAP.zh-TW.md](docs/_archive/ROADMAP.zh-TW.md)
+- [docs/demo.cast](docs/demo.cast)
+- [docs/FINAL_RELEASE_AUDIT.md](docs/FINAL_RELEASE_AUDIT.md)
+- [docs/OPEN_SOURCE_READINESS.md](docs/OPEN_SOURCE_READINESS.md)
+- [docs/phantom-companion.md](docs/phantom-companion.md)
+- [docs/plans/2026-06-23-goal-aware-accountability-loop.md](docs/plans/2026-06-23-goal-aware-accountability-loop.md)
+- [docs/PRIVACY_AND_DEMO.md](docs/PRIVACY_AND_DEMO.md)
+- [docs/PRIVACY_EXPORT_BUNDLE.md](docs/PRIVACY_EXPORT_BUNDLE.md)
+- [docs/PUBLIC_RELEASE_APPROVAL.md](docs/PUBLIC_RELEASE_APPROVAL.md)
+- [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
+- [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
+- [docs/specs/2026-06-23-goal-aware-accountability-loop-design.md](docs/specs/2026-06-23-goal-aware-accountability-loop-design.md)
+- [docs/SYNTHETIC_REPORTING_LOOP.md](docs/SYNTHETIC_REPORTING_LOOP.md)
+- [docs/TAG_PLAN.md](docs/TAG_PLAN.md)
+- [docs/THIRTY_DAY_REVIEW_SCENARIO.md](docs/THIRTY_DAY_REVIEW_SCENARIO.md)
+
+### phantom_companion
+
+- [phantom_companion/__init__.py](phantom_companion/__init__.py)
+- [phantom_companion/aggregator.py](phantom_companion/aggregator.py)
+- [phantom_companion/anomaly_detector/__init__.py](phantom_companion/anomaly_detector/__init__.py)
+- [phantom_companion/anomaly_detector/detector.py](phantom_companion/anomaly_detector/detector.py)
+- [phantom_companion/anomaly_detector/gate.py](phantom_companion/anomaly_detector/gate.py)
+- [phantom_companion/cache.py](phantom_companion/cache.py)
+- [phantom_companion/checkin.py](phantom_companion/checkin.py)
+- [phantom_companion/cli.py](phantom_companion/cli.py)
+- [phantom_companion/demo_loop.py](phantom_companion/demo_loop.py)
+- [phantom_companion/fixtures.py](phantom_companion/fixtures.py)
+- [phantom_companion/goal_eval.py](phantom_companion/goal_eval.py)
+- [phantom_companion/goal_nudge.py](phantom_companion/goal_nudge.py)
+- [phantom_companion/goals.py](phantom_companion/goals.py)
+- [phantom_companion/health_ingest.py](phantom_companion/health_ingest.py)
+- [phantom_companion/insight_modules/__init__.py](phantom_companion/insight_modules/__init__.py)
+- [phantom_companion/insight_modules/attention_switches.py](phantom_companion/insight_modules/attention_switches.py)
+- [phantom_companion/insight_modules/health_productivity_correlation.py](phantom_companion/insight_modules/health_productivity_correlation.py)
+- [phantom_companion/insight_modules/jobseek_followup.py](phantom_companion/insight_modules/jobseek_followup.py)
+- [phantom_companion/insight_modules/learning_roi.py](phantom_companion/insight_modules/learning_roi.py)
+- [phantom_companion/insight_modules/llm_usage.py](phantom_companion/insight_modules/llm_usage.py)
+- [phantom_companion/notify.py](phantom_companion/notify.py)
+- [phantom_companion/output_ingest.py](phantom_companion/output_ingest.py)
+- [phantom_companion/privacy_export.py](phantom_companion/privacy_export.py)
+- [phantom_companion/reporter.py](phantom_companion/reporter.py)
+- [phantom_companion/review_scenario.py](phantom_companion/review_scenario.py)
+- [phantom_companion/schema.py](phantom_companion/schema.py)
+- [phantom_companion/thresholds.py](phantom_companion/thresholds.py)
+- [phantom_companion/trends.py](phantom_companion/trends.py)
+
+### tests
+
+- [tests/__init__.py](tests/__init__.py)
+- [tests/test_aggregate_window.py](tests/test_aggregate_window.py)
+- [tests/test_aggregator.py](tests/test_aggregator.py)
+- [tests/test_anomaly_detector.py](tests/test_anomaly_detector.py)
+- [tests/test_anomaly_gate.py](tests/test_anomaly_gate.py)
+- [tests/test_checkin_trends_e2e.py](tests/test_checkin_trends_e2e.py)
+- [tests/test_checkin_trends.py](tests/test_checkin_trends.py)
+- [tests/test_cli_subcommands.py](tests/test_cli_subcommands.py)
+- [tests/test_demo_loop_contract.py](tests/test_demo_loop_contract.py)
+- [tests/test_fixtures.py](tests/test_fixtures.py)
+- [tests/test_goal_cli.py](tests/test_goal_cli.py)
+- [tests/test_goal_eval.py](tests/test_goal_eval.py)
+- [tests/test_goal_nudge_wiring.py](tests/test_goal_nudge_wiring.py)
+- [tests/test_goal_nudge.py](tests/test_goal_nudge.py)
+- [tests/test_goal_report.py](tests/test_goal_report.py)
+- [tests/test_goals.py](tests/test_goals.py)
+- [tests/test_health_output_e2e.py](tests/test_health_output_e2e.py)
+- [tests/test_health_output_wiring.py](tests/test_health_output_wiring.py)
+- [tests/test_ingest_health_e2e.py](tests/test_ingest_health_e2e.py)
+- [tests/test_insight_stubs.py](tests/test_insight_stubs.py)
+- [tests/test_jobseek_aging.py](tests/test_jobseek_aging.py)
+- [tests/test_min_samples.py](tests/test_min_samples.py)
+- [tests/test_notify_relay.py](tests/test_notify_relay.py)
+- [tests/test_notify_wire_e2e.py](tests/test_notify_wire_e2e.py)
+- [tests/test_open_source_contract.py](tests/test_open_source_contract.py)
+- [tests/test_output_ingest_e2e.py](tests/test_output_ingest_e2e.py)
+- [tests/test_packaging.py](tests/test_packaging.py)
+- [tests/test_privacy_export_contract.py](tests/test_privacy_export_contract.py)
+- [tests/test_release_prep_contract.py](tests/test_release_prep_contract.py)
+- [tests/test_reporter_shame_free.py](tests/test_reporter_shame_free.py)
+- [tests/test_shame_free_invariant_all_emitters.py](tests/test_shame_free_invariant_all_emitters.py)
+- [tests/test_subjective_correlation_e2e.py](tests/test_subjective_correlation_e2e.py)
+- [tests/test_subjective_correlation.py](tests/test_subjective_correlation.py)
+- [tests/test_thirty_day_review_scenario_contract.py](tests/test_thirty_day_review_scenario_contract.py)
+- [tests/test_weekly_rollup.py](tests/test_weekly_rollup.py)
+
