@@ -1,4 +1,3 @@
-import math
 from phantom_companion.schema import (
     AggregateWindow, DayAggregate, HealthSample, OutputSample, NormalizedEvent,
 )

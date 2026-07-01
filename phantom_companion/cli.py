@@ -3,6 +3,8 @@
 Subcommands:
 - ``daily-report [--day YYYY-MM-DD] [--out DIR]``
 - ``weekly-report [--end YYYY-MM-DD] [--out DIR]``
+- ``privacy-export --source DIR --out DIR``
+- ``review-scenario --source DIR --out DIR``
 
 Default output: ``~/.phantom-mesh/logs/phantom-companion/<date>-report.md``.
 """
@@ -91,6 +93,45 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Path to the export JSON (one day object or a list of day rows).",
     )
 
+    demo = sub.add_parser(
+        "demo-loop",
+        help="Write a deterministic synthetic timeline + report artifact bundle.",
+    )
+    demo.add_argument("--out", type=Path, required=True, help="Output bundle directory.")
+    demo.add_argument("--end", default="2026-05-30", help="Last day of the demo window.")
+    demo.add_argument("--days", type=int, default=30, help="Number of synthetic days.")
+    demo.add_argument("--seed", type=int, default=0, help="Deterministic fixture seed.")
+
+    privacy = sub.add_parser(
+        "privacy-export",
+        help="Write a redacted shareable report-template export from a demo bundle.",
+    )
+    privacy.add_argument(
+        "--source",
+        type=Path,
+        required=True,
+        help="Source demo-loop bundle directory or manifest.json.",
+    )
+    privacy.add_argument("--out", type=Path, required=True, help="Output export directory.")
+    privacy.add_argument(
+        "--template",
+        choices=("weekly-review", "monthly-review"),
+        default="weekly-review",
+        help="Report template to include in the export.",
+    )
+
+    review = sub.add_parser(
+        "review-scenario",
+        help="Write a 30-day synthetic review usefulness evidence bundle.",
+    )
+    review.add_argument(
+        "--source",
+        type=Path,
+        required=True,
+        help="Source demo-loop bundle directory or manifest.json.",
+    )
+    review.add_argument("--out", type=Path, required=True, help="Output scenario directory.")
+
     goal = sub.add_parser("goal", help="Manage accountability goals.")
     goal_sub = goal.add_subparsers(dest="goal_cmd", required=True)
     g_set = goal_sub.add_parser("set", help="Declare or update a goal.")
@@ -157,6 +198,30 @@ def main(argv: list[str] | None = None) -> int:
             for written in paths:
                 print(str(written))
             return 0
+        elif args.cmd == "demo-loop":
+            from .demo_loop import write_synthetic_demo_loop
+
+            path = write_synthetic_demo_loop(
+                out_root=args.out,
+                end_day=args.end,
+                days=args.days,
+                seed=args.seed,
+            )
+        elif args.cmd == "privacy-export":
+            from .privacy_export import write_privacy_export_bundle
+
+            path = write_privacy_export_bundle(
+                source_bundle=args.source,
+                out_root=args.out,
+                template=args.template,
+            )
+        elif args.cmd == "review-scenario":
+            from .review_scenario import write_review_scenario_bundle
+
+            path = write_review_scenario_bundle(
+                source_bundle=args.source,
+                out_root=args.out,
+            )
         elif args.cmd == "goal":
             from .goals import add_goal, load_goals, remove_goal
             from .reporter import DEFAULT_REPORT_ROOT
