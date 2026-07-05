@@ -76,6 +76,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     checkin.add_argument("--out", type=Path, default=None, help="Output directory.")
 
+    checkin_report = sub.add_parser(
+        "checkin-report",
+        help="Summarize the REAL accumulated check-in store (honest when empty).",
+    )
+    checkin_report.add_argument(
+        "--out", type=Path, default=None, help="Store directory (default: data dir)."
+    )
+    checkin_report.add_argument(
+        "--json", action="store_true", help="Emit the full report as JSON."
+    )
+
     ingest = sub.add_parser(
         "ingest-output", help="Collect git activity into developer-output samples."
     )
@@ -176,6 +187,17 @@ def main(argv: list[str] | None = None) -> int:
             path = write_anomaly_alerts(window, metric=args.metric, out_root=args.out)
         elif args.cmd == "checkin":
             path = _record_checkin(args.line, out_root=args.out)
+        elif args.cmd == "checkin-report":
+            from .checkin_store import companion_demo_report
+
+            report = companion_demo_report(path=args.out)
+            if args.json:
+                import json as _json
+
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                print(report["summary"])
+            return 0
         elif args.cmd == "ingest-output":
             from .output_ingest import ingest_output
 
@@ -284,19 +306,12 @@ def _ingest_days(since: str | None, day: str | None) -> list[str] | None:
 
 
 def _record_checkin(line: str, out_root: Path | None = None) -> Path:
-    """Append one nightly subjective check-in to a LOCAL-ONLY JSONL store."""
-    import json
-
+    """Append one nightly subjective check-in to the real LOCAL-ONLY JSONL store."""
     from .checkin import parse_checkin_line
-    from .reporter import DEFAULT_REPORT_ROOT
+    from .checkin_store import append_checkin
 
     checkin = parse_checkin_line(line)
-    out_dir = Path(out_root) if out_root else DEFAULT_REPORT_ROOT
-    out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / "checkins.jsonl"
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(checkin.to_dict(), ensure_ascii=False) + "\n")
-    return path
+    return append_checkin(checkin, path=out_root)
 
 
 if __name__ == "__main__":
